@@ -31,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import org.opencv.android.BaseLoaderCallback;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -51,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
 
     Uri imageUri1, imageUri2, imageUri3;
     Uri cropUri1, cropUri2, cropUri3;
+
+    Bitmap mask_bitmap;
 
 //    Bitmap croppedBitmap = null;
     Bitmap croppedBitmap1 = null, croppedBitmap2 = null, croppedBitmap3 = null;
@@ -208,22 +211,22 @@ public class MainActivity extends AppCompatActivity {
 
                         Log.d("masdaasdasd", "완료");
 
-                        Bitmap bitmap = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
+                        mask_bitmap = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
                         int one = 0, zero = 0;
                         for(int i=0;i<304;i++){
                             for(int j=0;j<304;j++){
                                 //Log.d("asdasdasd", i+", "+j+": "+output1[0][i][j][0]);
                                 if(output1[0][i][j][0]>=0.15){
                                     one ++;
-                                    bitmap.setPixel(j, i, Color.WHITE);
+                                    mask_bitmap.setPixel(j, i, Color.WHITE);
                                 }else{
                                     zero++;
-                                    bitmap.setPixel(j, i, Color.BLACK);
+                                    mask_bitmap.setPixel(j, i, Color.BLACK);
                                 }
                             }
                         }
                         Log.d("asdasdasd", "one: "+ one+" & zero: "+zero);
-                        imageView3.setImageBitmap(bitmap);
+                        imageView3.setImageBitmap(mask_bitmap);
                     } else{
                         Toast.makeText(getApplicationContext(), "image is small", Toast.LENGTH_SHORT).show();
                     }
@@ -416,24 +419,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private Interpreter getTfliteInterpreter(String modelPath) {
-        try {
-            return new Interpreter(loadModelFile(MainActivity.this, modelPath));
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private MappedByteBuffer loadModelFile(Activity activity, String modelPath) throws IOException {
-        AssetFileDescriptor fileDescriptor = activity.getAssets().openFd(modelPath);
-        FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
-        FileChannel fileChannel = inputStream.getChannel();
-        long startOffset = fileDescriptor.getStartOffset();
-        long declaredLength = fileDescriptor.getDeclaredLength();
-        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
-    }
     private Bitmap[] decompose(Bitmap croppedBitmap) {
         int[] coverImageIntArray1D = new int[304 * 304];
         Bitmap resizedBitmap = null;
