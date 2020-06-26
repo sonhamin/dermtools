@@ -380,7 +380,17 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     Log.d("asdfasf", "5");
-                    Interpreter tflite = getTfliteInterpreter("real_efficientnet.tflite");
+                    MappedByteBuffer tfliteModel = null;
+                    try {
+                        tfliteModel = FileUtil.loadMappedFile(getApplicationContext(), "real_efficientnet.tflite");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    Interpreter.Options tfliteOptions = new Interpreter.Options();
+                    tfliteOptions.setNumThreads(3);
+                    Interpreter tflite = new Interpreter(tfliteModel, tfliteOptions);
+
                     // 모델 구동.
                     // 정확하게는 from_session 함수의 output_tensors 매개변수에 전달된 연산 호출
                     Log.d("asdfasf", "6");
