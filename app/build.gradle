@@ -33,6 +33,8 @@ dependencies {
 
     implementation 'org.tensorflow:tensorflow-android:+'
     implementation 'org.tensorflow:tensorflow-lite:+'
+    implementation('org.tensorflow:tensorflow-lite-support:0.0.0-nightly') { changing = true }
+
     implementation 'com.soundcloud.android:android-crop:1.0.1@aar'
     implementation 'com.theartofdev.edmodo:android-image-cropper:2.6.+'
 }

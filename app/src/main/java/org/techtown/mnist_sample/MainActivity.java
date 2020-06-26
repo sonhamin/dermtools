@@ -1,16 +1,12 @@
 package org.techtown.mnist_sample;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
@@ -22,14 +18,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.soundcloud.android.crop.Crop;
-import com.theartofdev.edmodo.cropper.CropImage;
 
 import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.support.common.FileUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
@@ -37,6 +32,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -89,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
                 if(image_num<=2){
                     image_num ++;
                     Intent intent = new Intent(Intent.ACTION_PICK);
-                    intent.setDataAndType(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+                    intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
                     startActivityForResult(intent, GET_GALLERY_IMAGE);
                 }else{
                     Toast.makeText(getApplicationContext(), "no more image", Toast.LENGTH_SHORT).show();
@@ -120,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(Intent.ACTION_PICK);
                 Log.d("asdfasf", "`");
-                intent.setDataAndType(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+                intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
                 Log.d("asdfasf", "-1");
                 startActivityForResult(intent, EFFICIENT_NET_IMAGE);
             }
@@ -129,21 +125,35 @@ public class MainActivity extends AppCompatActivity {
         analysisButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(croppedBitmap1 != null && croppedBitmap2 != null && croppedBitmap3 != null){
+                if(croppedBitmap1 != null){
                     int[] bitWidth = new int[3];
                     int[] bitHeight = new int[3];
-                    bitWidth[0] = croppedBitmap1.getWidth();
-                    bitWidth[1] = croppedBitmap2.getWidth();
+
+                    Bitmap resizedBitmap = null;
+                    resizedBitmap = Bitmap.createScaledBitmap(croppedBitmap1, 304, 304, true);
+
+                    Bitmap[] combs = decompose(resizedBitmap);
+                    croppedBitmap2 = combs[0];
+                    croppedBitmap3 = combs[1];
+
+                    bitWidth[0] = resizedBitmap.getWidth();
+                    bitWidth[1] = resizedBitmap.getWidth();
+
                     bitWidth[2] = croppedBitmap3.getWidth();
-                    bitHeight[0] = croppedBitmap1.getHeight();
+                    bitHeight[0] = resizedBitmap.getHeight();
                     bitHeight[1] = croppedBitmap2.getHeight();
                     bitHeight[2] = croppedBitmap3.getHeight();
                     int[] coverImageIntArray1D1 = new int[bitWidth[0] * bitHeight[0]];
                     int[] coverImageIntArray1D2 = new int[bitWidth[1] * bitHeight[1]];
                     int[] coverImageIntArray1D3 = new int[bitWidth[2] * bitHeight[2]];
-                    croppedBitmap1.getPixels(coverImageIntArray1D1, 0, bitWidth[0], 0, 0, bitWidth[0], bitHeight[0]);
+                    resizedBitmap.getPixels(coverImageIntArray1D1, 0, bitWidth[0], 0, 0, bitWidth[0], bitHeight[0]);
                     croppedBitmap2.getPixels(coverImageIntArray1D2, 0, bitWidth[1], 0, 0, bitWidth[1], bitHeight[1]);
                     croppedBitmap3.getPixels(coverImageIntArray1D3, 0, bitWidth[2], 0, 0, bitWidth[2], bitHeight[2]);
+
+                    imageView2.setImageBitmap(croppedBitmap2);
+                    imageView2.setVisibility(View.VISIBLE);
+                    imageView3.setImageBitmap(croppedBitmap3);
+                    imageView3.setVisibility(View.VISIBLE);
 
                     Log.d("asdasdasdasd", bitWidth[0] + ", "+bitHeight[0]+" and "+bitWidth[1] + ", "+bitHeight[1]+" and "+bitWidth[2] + ", "+bitHeight[2]);
 
@@ -177,21 +187,32 @@ public class MainActivity extends AppCompatActivity {
                                 input[2][0][i][j][0] = (float) (R3 / 255.0);
                                 input[2][0][i][j][1] = (float) (G3 / 255.0);
                                 input[2][0][i][j][2] = (float) (B3 / 255.0);
-
                             }
                         }
-                        Interpreter tflite = getTfliteInterpreter("real_unet.tflite");
+                        //Interpreter tflite = getTfliteInterpreter("real_unet.tflite");
                         // 모델 구동.
                         // 정확하게는 from_session 함수의 output_tensors 매개변수에 전달된 연산 호출
 //                        tflite.run(input, output);
+
+                        MappedByteBuffer tfliteModel = null;
+                        try {
+                            tfliteModel = FileUtil.loadMappedFile(getApplicationContext(), "real_unet.tflite");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                        Interpreter.Options tfliteOptions = new Interpreter.Options();
+                        tfliteOptions.setNumThreads(3);
+                        Interpreter tflite = new Interpreter(tfliteModel, tfliteOptions);
                         tflite.runForMultipleInputsOutputs(input, outputs);
+
                         Log.d("masdaasdasd", "완료");
 
                         Bitmap bitmap = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
                         int one = 0, zero = 0;
                         for(int i=0;i<304;i++){
                             for(int j=0;j<304;j++){
-                                Log.d("asdasdasd", i+", "+j+": "+output1[0][i][j][0]);
+                                //Log.d("asdasdasd", i+", "+j+": "+output1[0][i][j][0]);
                                 if(output1[0][i][j][0]>=0.15){
                                     one ++;
                                     bitmap.setPixel(j, i, Color.WHITE);
@@ -403,4 +424,127 @@ public class MainActivity extends AppCompatActivity {
         long declaredLength = fileDescriptor.getDeclaredLength();
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
     }
+    private Bitmap[] decompose(Bitmap croppedBitmap) {
+        int[] coverImageIntArray1D = new int[304 * 304];
+        Bitmap resizedBitmap = null;
+        resizedBitmap = Bitmap.createScaledBitmap(croppedBitmap, 304, 304, true);
+
+        resizedBitmap.getPixels(coverImageIntArray1D, 0, 304, 0, 0, 304, 304);
+
+        float[][][] input = new float[304][304][3];
+
+        for (int i = 0; i < 304; i++) {
+            for (int j = 0; j < 304; j++) {
+                int rgb = coverImageIntArray1D[i * 304 + j];
+                int R = Color.red(rgb);
+                int G = Color.green(rgb);
+                int B = Color.blue(rgb);
+                input[i][j][0] = R;
+                input[i][j][1] = G;
+                input[i][j][2] = B;
+            }
+        }
+
+        float[][] C = new float[3][304*304];
+
+        int counter = 0;
+        for(int i=0; i<304; i++)
+            for(int j=0; j<304; j++) {
+                C[0][counter] = (float) -Math.log(input[i][j][0]/255.0);
+                C[1][counter] = (float) -Math.log(input[i][j][1]/255.0);
+                C[2][counter] = (float) -Math.log(input[i][j][2]/255.0);
+                counter += 1;
+            }
+
+
+        float[][] C_add = new float[2][3];
+        float[][] C_b = new float[2][1];
+
+        C_add[0][0] = (float) 49.498073;
+        C_add[0][1] = (float) -26.59762992;
+        C_add[0][2] = (float) 15.80793166;
+        C_add[1][0] = (float) -23.99799413;
+        C_add[1][1] = (float) 21.06695593;
+        C_add[1][2] = (float) -1.91282112;
+
+        C_b[0][0] = (float) 1.1601;
+        C_b[1][0] = (float) 2.8347;
+
+        float[][] q = new float[3][92416];
+        for(int i=0; i<2; i++)
+            for(int j=0; j<304*304; j++)
+            {
+                q[i][j] = C_add[i][0]*C[0][j];
+                q[i][j] += C_add[i][1]*C[1][j];
+                q[i][j] += C_add[i][2]*C[2][j];
+            }
+
+        for (int i=0; i<2; i++)
+            for(int j=0; j<304*304; j++)
+            {
+                q[i][j] = q[i][j] - C_b[i][0];
+            }
+
+        float[][] p = new float[3][2];
+
+        p[0][0] = (float) 0.0246;
+        p[0][1] = (float) 0.0;
+        p[1][0] = (float) 0.0316;
+        p[1][1] = (float) 0.0;
+        p[2][0] = (float) 0.0394;
+        p[2][1] = (float) 0.0;
+
+        float[][] I1 = new float[92416][3];
+
+        for(int i=0; i<92416; i++)
+            for(int j=0; j<3; j++)
+            {
+                I1[i][j] = (float) Math.exp(-(p[j][0] * q[0][i]));
+
+                if(I1[i][j] < 0.0){    I1[i][j] = 0;   }
+                if(I1[i][j] > 1.0){    I1[i][j] = 1;   }
+
+            }
+
+        Bitmap bitmap_mela = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
+
+        for(int i=0; i<304; i++)
+            for(int j=0; j<304; j++)
+            {
+                bitmap_mela.setPixel(j, i, Color.rgb(I1[304*i + j][0], I1[304*i + j][1], I1[304*i + j][2]));
+            }
+
+        float[][] pp = new float[3][2];
+
+        pp[0][0] = (float) 0.0;
+        pp[0][1] = (float) 0.0193;
+        pp[1][0] = (float) 0.0;
+        pp[1][1] = (float) 0.0755;
+        pp[2][0] = (float) 0.0;
+        pp[2][1] = (float) 0.0666;
+
+        float[][] I2 = new float[92416][3];
+
+        for(int i=0; i<92416; i++)
+            for(int j=0; j<3; j++)
+            {
+                I2[i][j] = (float) Math.exp(-(pp[j][1] * q[1][i]));
+                if(I2[i][j] < 0.0){    I2[i][j] = 0;   }
+                if(I2[i][j] > 1.0){    I2[i][j] = 1;   }
+            }
+
+        Bitmap bitmap_hemo = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
+
+        for(int i=0; i<304; i++)
+            for(int j=0; j<304; j++)
+            {
+                bitmap_hemo.setPixel(j, i, Color.rgb(I2[304*i + j][0], I2[304*i + j][1], I2[304*i + j][2]));
+            }
+        Bitmap[] combined = new Bitmap[2];
+        combined[0] = bitmap_hemo;
+        combined[1] = bitmap_mela;
+        return combined;
+    }
+
+
 }
