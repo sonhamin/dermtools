@@ -17,11 +17,17 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.soundcloud.android.crop.Crop;
 
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.support.common.FileUtil;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -33,6 +39,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.opencv.android.BaseLoaderCallback;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
@@ -58,6 +65,13 @@ public class MainActivity extends AppCompatActivity {
 //    Bitmap croppedBitmap = null;
     Bitmap croppedBitmap1 = null, croppedBitmap2 = null, croppedBitmap3 = null;
     File croppedFile1, croppedFile2, croppedFile3;
+
+    FirebaseStorage storage = FirebaseStorage.getInstance();
+    // Create a storage reference from our app
+    StorageReference storageRef = storage.getReference();
+    // Create a child reference
+    // imagesRef now points to "images"
+    StorageReference imagesRef = storageRef.child("images");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,31 +110,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-//        imageButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Intent intent = new Intent(Intent.ACTION_PICK);
-//                intent.setDataAndType(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
-//                startActivityForResult(intent, GET_GALLERY_IMAGE);
-//            }
-//        });
-//
-//        imageView.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Intent intent = new Intent(Intent.ACTION_PICK);
-//                intent.setDataAndType(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
-//                startActivityForResult(intent, GET_GALLERY_IMAGE);
-//            }
-//        });
-
         cropButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(Intent.ACTION_PICK);
-                Log.d("asdfasf", "`");
                 intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
-                Log.d("asdfasf", "-1");
                 startActivityForResult(intent, EFFICIENT_NET_IMAGE);
             }
         });
@@ -158,8 +152,6 @@ public class MainActivity extends AppCompatActivity {
                     imageView3.setImageBitmap(croppedBitmap3);
                     imageView3.setVisibility(View.VISIBLE);
 
-                    Log.d("asdasdasdasd", bitWidth[0] + ", "+bitHeight[0]+" and "+bitWidth[1] + ", "+bitHeight[1]+" and "+bitWidth[2] + ", "+bitHeight[2]);
-
                     float[][][][][] input = new float[3][1][304][304][3];
                     Map<Integer, Object> outputs = new HashMap<>();
 
@@ -192,10 +184,6 @@ public class MainActivity extends AppCompatActivity {
                                 input[2][0][i][j][2] = (float) (B3 / 255.0);
                             }
                         }
-                        //Interpreter tflite = getTfliteInterpreter("real_unet.tflite");
-                        // 모델 구동.
-                        // 정확하게는 from_session 함수의 output_tensors 매개변수에 전달된 연산 호출
-//                        tflite.run(input, output);
 
                         MappedByteBuffer tfliteModel = null;
                         try {
@@ -209,29 +197,20 @@ public class MainActivity extends AppCompatActivity {
                         Interpreter tflite = new Interpreter(tfliteModel, tfliteOptions);
                         tflite.runForMultipleInputsOutputs(input, outputs);
 
-                        Log.d("masdaasdasd", "완료");
-
                         mask_bitmap = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
-                        int one = 0, zero = 0;
                         for(int i=0;i<304;i++){
                             for(int j=0;j<304;j++){
-                                //Log.d("asdasdasd", i+", "+j+": "+output1[0][i][j][0]);
                                 if(output1[0][i][j][0]>=0.15){
-                                    one ++;
                                     mask_bitmap.setPixel(j, i, Color.WHITE);
                                 }else{
-                                    zero++;
                                     mask_bitmap.setPixel(j, i, Color.BLACK);
                                 }
                             }
                         }
-                        Log.d("asdasdasd", "one: "+ one+" & zero: "+zero);
                         imageView3.setImageBitmap(mask_bitmap);
                     } else{
                         Toast.makeText(getApplicationContext(), "image is small", Toast.LENGTH_SHORT).show();
                     }
-//                    Log.d("croppedBitmap", bitHeight + ", " + bitWidth);
-//                    }
                 }
             }
         });
@@ -278,7 +257,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private File createImageFile() throws IOException {
-        // 이미지 파일 이름 ( blackJin_{시간}_ )
         String timeStamp = new SimpleDateFormat("HHmmss").format(new Date());
         String imageFileName = "croppedImage" + timeStamp + "_";
 
@@ -338,12 +316,15 @@ public class MainActivity extends AppCompatActivity {
                 switch (crop_num){
                     case 1:
                         croppedBitmap1 = MediaStore.Images.Media.getBitmap(getContentResolver(), cropUri1);
+                        uploadImage(croppedBitmap1, "img1");
                         break;
                     case 2:
                         croppedBitmap2 = MediaStore.Images.Media.getBitmap(getContentResolver(), cropUri2);
+                        uploadImage(croppedBitmap2, "img2");
                         break;
                     case 3:
                         croppedBitmap3 = MediaStore.Images.Media.getBitmap(getContentResolver(), cropUri3);
+                        uploadImage(croppedBitmap3, "img3");
                         break;
 
                 }
@@ -352,69 +333,31 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         if (requestCode == EFFICIENT_NET_IMAGE && resultCode == RESULT_OK){
-            Log.d("asdfasf", "-1");
             Uri enUri = data.getData();
-            Log.d("asdfasf", "0");
             try{
-                Log.d("asdfasf", "1");
                 Bitmap enBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), enUri);
                 Bitmap enResizeBitmap = Bitmap.createScaledBitmap(enBitmap, 224, 224, true);
-                Log.d("asdfasdf", enResizeBitmap.getWidth() + ", " + enResizeBitmap.getHeight());
-                Log.d("asdfasf", "2");
-                float [][][][] input = new float[1][224][224][3];
 
-                Map<Integer, Object> outputs = new HashMap<>();
-                float[][] output1 = new float[1][18];
-                outputs.put(0,output1);
-                Log.d("asdfasf", "3");
-                if(enResizeBitmap.getWidth()==224 && enResizeBitmap.getHeight()==224){
-                    int[] enBitmapIntArray = new int[224*224];
-                    Log.d("asdfasf", "4");
-                    enResizeBitmap.getPixels(enBitmapIntArray, 0, 224, 0, 0, 224,224);
-                    for(int i=0;i<224;i++){
-                        for(int j=0;j<224;j++){
-                            int rgb = enBitmapIntArray[i*224+j];
-                            int R = Color.red(rgb);
-                            int G = Color.green(rgb);
-                            int B = Color.blue(rgb);
-                            input[0][i][j][0] = R;
-                            input[0][i][j][1] = G;
-                            input[0][i][j][2] = B;
-                        }
-                    }
-                    Log.d("asdfasf", "5");
-                    MappedByteBuffer tfliteModel = null;
-                    try {
-                        tfliteModel = FileUtil.loadMappedFile(getApplicationContext(), "real_efficientnet.tflite");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                ImageView imageView = findViewById(R.id.image_view);
+                imageView.setImageBitmap(enResizeBitmap);
+                imageView.setVisibility(View.VISIBLE);
+                imageButton.setVisibility(View.GONE);
 
-                    Interpreter.Options tfliteOptions = new Interpreter.Options();
-                    tfliteOptions.setNumThreads(3);
-                    Interpreter tflite = new Interpreter(tfliteModel, tfliteOptions);
+                EfficientNet efficientNet = new EfficientNet(enResizeBitmap, this.getApplicationContext());
+                efficientNet.RunModel();
+                float[][] output = efficientNet.getOutput();
 
-                    // 모델 구동.
-                    // 정확하게는 from_session 함수의 output_tensors 매개변수에 전달된 연산 호출
-                    Log.d("asdfasf", "6");
-//                    tflite.runForMultipleInputsOutputs(input, outputs);
-                    tflite.run(input, output1);
-                    Log.d("asdfasf", "7");
-
-                    ImageView imageView = findViewById(R.id.image_view);
-                    imageView.setImageBitmap(enResizeBitmap);
-                    imageView.setVisibility(View.VISIBLE);
-                    imageButton.setVisibility(View.GONE);
+                if(output != null){
                     String outputString = new String();
                     for(int i=0;i<17;i++) {
-                        outputString = outputString + Float.toString(output1[0][i]) +", ";
+                        outputString = outputString + output[0][i] +", ";
                     }
-                    outputString = outputString + Float.toString(output1[0][17]);
+                    outputString = outputString + output[0][17];
                     TextView textView = findViewById(R.id.textView);
                     textView.setText(outputString);
                 }
             } catch (Exception e){
-                Log.d("asdfasd", e.toString());
+                Log.d("exception", e.toString());
             }
         }
     }
@@ -541,5 +484,23 @@ public class MainActivity extends AppCompatActivity {
         return combined;
     }
 
+    void uploadImage(Bitmap bitmap, String filename){
+        StorageReference imageRef = storageRef.child("images/"+filename +".jpg");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+        byte[] data = baos.toByteArray();
 
+        UploadTask uploadTask = imageRef.putBytes(data);
+        uploadTask.addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                // Handle unsuccessful uploads
+            }
+        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
+            }
+        });
+    }
 }
