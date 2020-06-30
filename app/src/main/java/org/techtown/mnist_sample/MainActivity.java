@@ -24,6 +24,13 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.soundcloud.android.crop.Crop;
 
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.support.common.FileUtil;
 
@@ -34,8 +41,10 @@ import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.opencv.android.BaseLoaderCallback;
 
@@ -72,6 +81,12 @@ public class MainActivity extends AppCompatActivity {
     // Create a child reference
     // imagesRef now points to "images"
     StorageReference imagesRef = storageRef.child("images");
+    static {
+        if (!OpenCVLoader.initDebug()) {
+            // Handle initialization error
+        }
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -208,6 +223,52 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                         imageView3.setImageBitmap(mask_bitmap);
+                        //coverImageIntArray1D1 -- original image
+
+                        int[] unet_result = new int[304 * 304];
+                        mask_bitmap.getPixels(unet_result, 0, 304, 0, 0, 304, 304);
+                        Mat contour_input = new Mat();
+                        Mat contour_input22 = new Mat();
+                        Utils.bitmapToMat(mask_bitmap, contour_input);
+
+                        Imgproc.cvtColor(contour_input, contour_input22, Imgproc.COLOR_BGR2GRAY);
+                        List<MatOfPoint> contours = new ArrayList<>();
+                        Mat hierarchy = new Mat();
+
+                        Imgproc.findContours(contour_input22, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_NONE);
+                        Mat orig_img = new Mat();
+                        Utils.bitmapToMat(resizedBitmap, orig_img);
+
+
+                        for (int i=0; i<contours.size(); i++)
+                        {
+                            List<MatOfPoint> contour = new ArrayList<>();
+                            contour.add(contours.get(i));
+                            Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
+                            Rect rect = Imgproc.boundingRect(contour.get(0));
+                            Imgproc.rectangle(orig_img, rect.tl(), rect.br(), new Scalar(255,0,0), 2);
+
+
+                            ///////////TODO: 1. Crop rectangle from original image
+                            ///////////TODO: 2. Resize cropped image to 224,224,3
+                            ///////////TODO: 3. Input resized image into efficient-net
+                            ///////////TODO: 4. Add textview to the center of cropped image
+
+                            int x = rect.x;
+                            int y = rect.y;
+                            int height = rect.height;
+                            int width = rect.width;
+
+
+                            ///////////~
+
+
+                        }
+
+                        Bitmap new_bit = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
+                        Utils.matToBitmap(orig_img, new_bit);
+                        imageView3.setImageBitmap(new_bit);
+
                     } else{
                         Toast.makeText(getApplicationContext(), "image is small", Toast.LENGTH_SHORT).show();
                     }
