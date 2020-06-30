@@ -3,6 +3,7 @@ package org.techtown.mnist_sample;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
@@ -26,10 +27,13 @@ import com.soundcloud.android.crop.Crop;
 
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.support.common.FileUtil;
@@ -239,36 +243,47 @@ public class MainActivity extends AppCompatActivity {
                         Mat orig_img = new Mat();
                         Utils.bitmapToMat(resizedBitmap, orig_img);
 
-
-                        for (int i=0; i<contours.size(); i++)
-                        {
+                        Bitmap[] bmps = new Bitmap[contours.size()];
+                        float[][][] bmpOutputs = new float[contours.size()][1][18];
+                        for (int i=0; i<contours.size(); i++) {
                             List<MatOfPoint> contour = new ArrayList<>();
                             contour.add(contours.get(i));
                             Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
                             Rect rect = Imgproc.boundingRect(contour.get(0));
                             Imgproc.rectangle(orig_img, rect.tl(), rect.br(), new Scalar(255,0,0), 2);
-
-
-                            ///////////TODO: 1. Crop rectangle from original image
-                            ///////////TODO: 2. Resize cropped image to 224,224,3
-                            ///////////TODO: 3. Input resized image into efficient-net
-                            ///////////TODO: 4. Add textview to the center of cropped image
-
                             int x = rect.x;
                             int y = rect.y;
                             int height = rect.height;
                             int width = rect.width;
 
-
-                            ///////////~
-
-
+                            try{
+                                ///////////TODO: 1. Crop rectangle from original image
+                                Bitmap originalBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri1);
+                                Mat originImg = new Mat(originalBitmap.getWidth() ,originalBitmap.getHeight(), CvType.CV_8UC4);
+                                Utils.bitmapToMat(originalBitmap, originImg);
+                                Mat subImg = originImg.submat(rect);
+                                Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+                                Utils.matToBitmap(subImg, bmp);
+                                imageView3.setImageBitmap(bmp);
+                                ///////////TODO: 2. Resize cropped image to 224,224,3
+                                bmps[i] = Bitmap.createScaledBitmap(bmp, 224, 224, true);
+                                ///////////TODO: 3. Input resized image into efficient-net
+                                EfficientNet efficientNet = new EfficientNet(bmps[i], getApplicationContext());
+                                efficientNet.RunModel();
+                                bmpOutputs[i] = efficientNet.getOutput();
+                                ///////////TODO: 4. Add textview to the center of cropped image
+                                Character numb = (char)('A'+i);
+                                String text = "" + numb;
+                                Point pnt = new Point(x + width/2 - 10, y + height/2 + 10);
+                                int fontFace = 2;
+                                double fontScale = 1.0;
+                                Imgproc.putText(orig_img, text, pnt, fontFace, fontScale, Scalar.all(255));
+                            } catch (Exception e){
+                            }
                         }
-
                         Bitmap new_bit = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
                         Utils.matToBitmap(orig_img, new_bit);
-                        imageView3.setImageBitmap(new_bit);
-
+                        imageView2.setImageBitmap(new_bit);
                     } else{
                         Toast.makeText(getApplicationContext(), "image is small", Toast.LENGTH_SHORT).show();
                     }
@@ -338,6 +353,10 @@ public class MainActivity extends AppCompatActivity {
             if(image_num==1){
                 imageUri1 = data.getData();
                 imageView1.setImageURI(imageUri1);
+//                Cursor cursor = getContentResolver().query(imageUri1, null, null, null, null );
+//                cursor.moveToNext();
+//                filename = cursor.getString( cursor.getColumnIndex( "_data" ) );
+//                cursor.close();
                 imageButton.setVisibility(View.GONE);
                 imageView1.setVisibility(View.VISIBLE);
                 crop_num = 1;
