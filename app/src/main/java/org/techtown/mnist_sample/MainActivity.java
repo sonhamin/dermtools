@@ -42,10 +42,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -245,6 +247,8 @@ public class MainActivity extends AppCompatActivity {
 
                         Bitmap[] bmps = new Bitmap[contours.size()];
                         float[][][] bmpOutputs = new float[contours.size()][1][18];
+
+                        String result = "";
                         for (int i=0; i<contours.size(); i++) {
                             List<MatOfPoint> contour = new ArrayList<>();
                             contour.add(contours.get(i));
@@ -271,8 +275,14 @@ public class MainActivity extends AppCompatActivity {
                                 EfficientNet efficientNet = new EfficientNet(bmps[i], getApplicationContext());
                                 efficientNet.RunModel();
                                 bmpOutputs[i] = efficientNet.getOutput();
-                                ///////////TODO: 4. Add textview to the center of cropped image
+//                                for(int j=0;j<18;j++){
+//                                    Log.d("efficientNet", "bmpOutputs["+i+"][0]["+j+"]: "+bmpOutputs[i][0][j]);
+//                                }
                                 Character numb = (char)('A'+i);
+                                String a = outputToString(efficientNet.getOutput());
+                                result = result + numb + ": "+a + "\n";
+
+                                ///////////TODO: 4. Add textview to the center of cropped image
                                 String text = "" + numb;
                                 Point pnt = new Point(x + width/2 - 10, y + height/2 + 10);
                                 int fontFace = 2;
@@ -284,6 +294,10 @@ public class MainActivity extends AppCompatActivity {
                         Bitmap new_bit = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
                         Utils.matToBitmap(orig_img, new_bit);
                         imageView2.setImageBitmap(new_bit);
+                        TextView textView = findViewById(R.id.textView);
+                        textView.setText(result);
+                        Log.d("efficientNet", result);
+
                     } else{
                         Toast.makeText(getApplicationContext(), "image is small", Toast.LENGTH_SHORT).show();
                     }
@@ -582,5 +596,46 @@ public class MainActivity extends AppCompatActivity {
                 // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
             }
         });
+    }
+
+    String outputToString(float[][] op){
+        ArrayList<EfficientOuput> eo = new ArrayList<>();
+        for(int i=0;i<18;i++){
+            eo.add(new EfficientOuput(i, op[0][i]));
+        }
+//        Log.d("efficient", "정렬 전");
+//        for(EfficientOuput efficientOuput : eo){
+//            Log.d("efficient", "["+efficientOuput.getNum()+", "+efficientOuput.getData()+"]");
+//        }
+
+        Collections.sort(eo);
+
+//
+//        Log.d("efficient", "정렬 후");
+//        for(EfficientOuput efficientOuput : eo){
+//            Log.d("efficient", "["+efficientOuput.getNum()+", "+efficientOuput.getData()+"]");
+//        }
+
+        String result = "";
+        for(int i=0;i<4;i++){
+            float data = eo.get(i).getData();
+            data = data*100;
+            String strData = new String();
+            if(data>=1) strData = String.format("%.0f", data);
+            else if(data>=0.1) strData = String.format("%.1f", data);
+            else if(data>=0.01) strData = String.format("%.2f", data);
+            else strData = String.format("%.3f", data);
+            result = result + eo.get(i).getNum() + ": " +strData+"%, ";
+        }
+        float data = eo.get(4).getData();
+        data = data*100;
+        String strData = new String();
+        if(data>=1) strData = String.format("%.0f", data);
+        else if(data>=0.1) strData = String.format("%.1f", data);
+        else if(data>=0.01) strData = String.format("%.2f", data);
+        else strData = String.format("%.3f", data);
+        result = result + eo.get(4).getNum() + ": " +strData+"%";
+
+        return result;
     }
 }
