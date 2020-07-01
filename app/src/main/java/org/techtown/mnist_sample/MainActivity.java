@@ -113,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
         imageView1 = findViewById(R.id.image_1);
         imageView2 = findViewById(R.id.image_2);
         imageView3 = findViewById(R.id.image_3);
-        cropButton = findViewById(R.id.crop_btn);
+        //cropButton = findViewById(R.id.crop_btn);
         analysisButton = findViewById(R.id.classify_btn);
         addButton = findViewById(R.id.add_btn);
 
@@ -131,14 +131,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        cropButton.setOnClickListener(new View.OnClickListener() {
+        /*cropButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(Intent.ACTION_PICK);
                 intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
                 startActivityForResult(intent, EFFICIENT_NET_IMAGE);
             }
-        });
+        });*/
 
         analysisButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -249,7 +249,20 @@ public class MainActivity extends AppCompatActivity {
                         float[][][] bmpOutputs = new float[contours.size()][1][18];
 
                         String result = "";
+
+                        MappedByteBuffer tfliteModel2 = null;
+                        Interpreter effNet = null;
+                        try{
+                            tfliteModel2 = FileUtil.loadMappedFile(getApplicationContext(), "real_efficientnet.tflite");
+                             effNet = new Interpreter(tfliteModel2, tfliteOptions);
+                        } catch (IOException e){
+                            e.printStackTrace();
+                        }
+
+
+                        int counter = 0;
                         for (int i=0; i<contours.size(); i++) {
+
                             List<MatOfPoint> contour = new ArrayList<>();
                             contour.add(contours.get(i));
                             Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
@@ -259,38 +272,45 @@ public class MainActivity extends AppCompatActivity {
                             int y = rect.y;
                             int height = rect.height;
                             int width = rect.width;
-
-                            try{
-                                ///////////TODO: 1. Crop rectangle from original image
-                                Bitmap originalBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri1);
-                                Mat originImg = new Mat(originalBitmap.getWidth() ,originalBitmap.getHeight(), CvType.CV_8UC4);
-                                Utils.bitmapToMat(originalBitmap, originImg);
-                                Mat subImg = originImg.submat(rect);
-                                Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                                Utils.matToBitmap(subImg, bmp);
-                                imageView3.setImageBitmap(bmp);
-                                ///////////TODO: 2. Resize cropped image to 224,224,3
-                                bmps[i] = Bitmap.createScaledBitmap(bmp, 224, 224, true);
-                                ///////////TODO: 3. Input resized image into efficient-net
-                                EfficientNet efficientNet = new EfficientNet(bmps[i], getApplicationContext());
-                                efficientNet.RunModel();
-                                bmpOutputs[i] = efficientNet.getOutput();
+                            if(height > 10 && width > 10)
+                            {
+                                try{
+                                    ///////////TODO: 1. Crop rectangle from original image
+                                    Bitmap originalBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri1);
+                                    Mat originImg = new Mat(originalBitmap.getWidth() ,originalBitmap.getHeight(), CvType.CV_8UC4);
+                                    Utils.bitmapToMat(originalBitmap, originImg);
+                                    Mat subImg = originImg.submat(rect);
+                                    Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+                                    Utils.matToBitmap(subImg, bmp);
+                                    imageView3.setImageBitmap(bmp);
+                                    ///////////TODO: 2. Resize cropped image to 224,224,3
+                                    bmps[i] = Bitmap.createScaledBitmap(bmp, 224, 224, true);
+                                    ///////////TODO: 3. Input resized image into efficient-net
+                                    EfficientNet efficientNet = new EfficientNet(bmps[i], getApplicationContext(), effNet);
+                                    efficientNet.RunModel();
+                                    bmpOutputs[i] = efficientNet.getOutput();
 //                                for(int j=0;j<18;j++){
 //                                    Log.d("efficientNet", "bmpOutputs["+i+"][0]["+j+"]: "+bmpOutputs[i][0][j]);
 //                                }
-                                Character numb = (char)('A'+i);
-                                String a = outputToString(efficientNet.getOutput());
-                                result = result + numb + ": "+a + "\n";
+                                    Character numb = (char)('A'+counter);
+                                    counter++;
+                                    String a = outputToString(efficientNet.getOutput());
 
-                                ///////////TODO: 4. Add textview to the center of cropped image
-                                String text = "" + numb;
-                                Point pnt = new Point(x + width/2 - 10, y + height/2 + 10);
-                                int fontFace = 2;
-                                double fontScale = 1.0;
-                                Imgproc.putText(orig_img, text, pnt, fontFace, fontScale, Scalar.all(255));
-                            } catch (Exception e){
+                                    result = result + numb + ": "+a + "\n";
+
+                                    ///////////TODO: 4. Add textview to the center of cropped image
+                                    String text = "" + numb;
+                                    Point pnt = new Point(x + width/2 - 10, y + height/2 + 10);
+                                    int fontFace = 2;
+                                    double fontScale = 1.0;
+                                    Imgproc.putText(orig_img, text, pnt, fontFace, fontScale, Scalar.all(255));
+                                } catch (Exception e){
+                                }
+
                             }
-                        }
+
+
+                    }
                         Bitmap new_bit = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
                         Utils.matToBitmap(orig_img, new_bit);
                         imageView2.setImageBitmap(new_bit);
@@ -298,9 +318,19 @@ public class MainActivity extends AppCompatActivity {
                         textView.setText(result);
                         Log.d("efficientNet", result);
 
+                        ImageView imageView = findViewById(R.id.image_view);
+                        imageView.setImageBitmap(new_bit);
+                        imageView.setVisibility(View.VISIBLE);
+
+                        imageView1.setVisibility(View.INVISIBLE);
+                        imageView2.setVisibility(View.INVISIBLE);
+                        imageView3.setVisibility(View.INVISIBLE);
+
                     } else{
                         Toast.makeText(getApplicationContext(), "image is small", Toast.LENGTH_SHORT).show();
                     }
+
+
                 }
             }
         });
@@ -426,7 +456,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
         }
-        if (requestCode == EFFICIENT_NET_IMAGE && resultCode == RESULT_OK){
+        /*if (requestCode == EFFICIENT_NET_IMAGE && resultCode == RESULT_OK){
             Uri enUri = data.getData();
             try{
                 Bitmap enBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), enUri);
@@ -453,7 +483,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e){
                 Log.d("exception", e.toString());
             }
-        }
+        }*/
     }
 
     private Bitmap[] decompose(Bitmap croppedBitmap) {
@@ -600,13 +630,20 @@ public class MainActivity extends AppCompatActivity {
 
     String outputToString(float[][] op){
         ArrayList<EfficientOuput> eo = new ArrayList<>();
+
+        String[] outputNames = {"Acne", "Actinic", "Atopic", "Bullous", "Cellulitis", "Eczema", "Exanthems", "Herpes",
+                                "Hives", "Light Disease", "Lupus", "Contact Dermititis", "Psoriasis", "Scabies",
+                                "Systemic", "Tinea", "Vasculitis", "Warts"};
+
+
         for(int i=0;i<18;i++){
-            eo.add(new EfficientOuput(i, op[0][i]));
+            eo.add(new EfficientOuput(outputNames[i], op[0][i]));
         }
 //        Log.d("efficient", "정렬 전");
 //        for(EfficientOuput efficientOuput : eo){
 //            Log.d("efficient", "["+efficientOuput.getNum()+", "+efficientOuput.getData()+"]");
 //        }
+
 
         Collections.sort(eo);
 
@@ -625,7 +662,7 @@ public class MainActivity extends AppCompatActivity {
             else if(data>=0.1) strData = String.format("%.1f", data);
             else if(data>=0.01) strData = String.format("%.2f", data);
             else strData = String.format("%.3f", data);
-            result = result + eo.get(i).getNum() + ": " +strData+"%, ";
+            result = result + eo.get(i).getName() + ": " +strData+"%, ";
         }
         float data = eo.get(4).getData();
         data = data*100;
@@ -634,7 +671,7 @@ public class MainActivity extends AppCompatActivity {
         else if(data>=0.1) strData = String.format("%.1f", data);
         else if(data>=0.01) strData = String.format("%.2f", data);
         else strData = String.format("%.3f", data);
-        result = result + eo.get(4).getNum() + ": " +strData+"%";
+        result = result + eo.get(4).getName() + ": " +strData+"%";
 
         return result;
     }

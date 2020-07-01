@@ -81,20 +81,13 @@
                 android:textSize="30px"
                 android:layout_marginRight="20dp"
                 android:id="@+id/add_btn"/>
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="50dp"
-                android:text="efficientnet"
-                android:textSize="30px"
-                android:layout_marginRight="20dp"
-                android:id="@+id/crop_btn"/>
 
             <Button
+                android:id="@+id/classify_btn"
                 android:layout_width="wrap_content"
                 android:layout_height="50dp"
-                android:text="unet"
-                android:textSize="30px"
-                android:id="@+id/classify_btn"/>
+                android:text="Analyze"
+                android:textSize="30px" />
         </LinearLayout>
 
     </FrameLayout>

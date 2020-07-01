@@ -15,13 +15,16 @@ public class EfficientNet {
     float[][] output;
     Bitmap bitmap;
     Context context;
-    Boolean isOutputExist = false;
+    Boolean isOutputExist;
+    Interpreter tflite;
 
-    public EfficientNet(Bitmap bitmap, Context context){
+    public EfficientNet(Bitmap bitmap, Context context, Interpreter tflite){
         this.bitmap = bitmap;
         this.context = context;
+        this.tflite = tflite;
         input = new float[1][224][224][3];
         output = new float[1][18];
+        isOutputExist = false;
     }
 
     public void RunModel(){
@@ -39,20 +42,10 @@ public class EfficientNet {
                     input[0][i][j][2] = B;
                 }
             }
-            MappedByteBuffer tfliteModel = null;
-            try{
-                tfliteModel = FileUtil.loadMappedFile(context.getApplicationContext(), "real_efficientnet.tflite");
-
-                Interpreter.Options tfliteOptions = new Interpreter.Options();
-                tfliteOptions.setNumThreads(3);
-                Interpreter tflite = new Interpreter(tfliteModel, tfliteOptions);
-
                 tflite.run(input, output);
 
                 isOutputExist = true;
-            } catch (IOException e){
-                e.printStackTrace();
-            }
+
         }
     }
 

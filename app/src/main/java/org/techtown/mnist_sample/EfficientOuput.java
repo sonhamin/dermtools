@@ -1,15 +1,15 @@
 package org.techtown.mnist_sample;
 
 public class EfficientOuput implements Comparable<EfficientOuput>{
-    private int num;
+    private String name;
     private float data;
 
-    public EfficientOuput(int num, float data){
-        this.num = num;
+    public EfficientOuput(String num, float data){
+        this.name = num;
         this.data = data;
     }
 
-    public int getNum(){return num;}
+    public String getName(){return name;}
     public float getData(){return data;}
 
 
