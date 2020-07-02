@@ -41,6 +41,8 @@ import org.tensorflow.lite.support.common.FileUtil;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.MappedByteBuffer;
@@ -265,15 +267,27 @@ public class MainActivity extends AppCompatActivity {
 
                             List<MatOfPoint> contour = new ArrayList<>();
                             contour.add(contours.get(i));
-                            Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
+
                             Rect rect = Imgproc.boundingRect(contour.get(0));
-                            Imgproc.rectangle(orig_img, rect.tl(), rect.br(), new Scalar(255,0,0), 2);
+
+                            if(rect.x >= 10){ rect.x-=10; }
+                            if(rect.y >= 10){ rect.y-=10; }
+
+                            if(rect.x + rect.width + 20 < orig_img.cols()){ rect.width+=20; }
+                            else{rect.width=orig_img.cols()-rect.x;}
+
+                            if(rect.y + rect.height + 20 < orig_img.rows()){ rect.height+=20; }
+                            else{rect.height=orig_img.rows()-rect.y;}
+
                             int x = rect.x;
                             int y = rect.y;
                             int height = rect.height;
                             int width = rect.width;
-                            if(height > 10 && width > 10)
+                            if(height > 20 && width > 20)
                             {
+
+                                Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
+                                //Imgproc.rectangle(orig_img, rect.tl(), rect.br(), new Scalar(255,0,0), 2);
                                 try{
                                     ///////////TODO: 1. Crop rectangle from original image
                                     Bitmap originalBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri1);
@@ -308,8 +322,6 @@ public class MainActivity extends AppCompatActivity {
                                 }
 
                             }
-
-
                     }
                         Bitmap new_bit = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
                         Utils.matToBitmap(orig_img, new_bit);
@@ -325,6 +337,19 @@ public class MainActivity extends AppCompatActivity {
                         imageView1.setVisibility(View.INVISIBLE);
                         imageView2.setVisibility(View.INVISIBLE);
                         imageView3.setVisibility(View.INVISIBLE);
+
+
+                        /*File mypath = new File ("/document/raw:/storage/emulated/0/Download/", "masked_img.jpg");
+                        FileOutputStream fos = null;
+                        try{
+                            fos = new FileOutputStream(mypath);
+                            new_bit.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                            fos.close();
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }*/
+
 
                     } else{
                         Toast.makeText(getApplicationContext(), "image is small", Toast.LENGTH_SHORT).show();
