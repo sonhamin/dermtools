@@ -12,11 +12,14 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -73,17 +76,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnTouchListener{
 
     ImageButton imageButton;
-    //    ImageView imageView;
     ImageView imageView1, imageView2, imageView3;
-    Button cropButton, analysisButton, addButton;
+    ImageView iv;
+    Button analysisButton, addButton;
+
+    ArrayList<RectangleRange> ranges = new ArrayList<>();
 
     private final int GET_GALLERY_IMAGE = 200;
-    private final int EFFICIENT_NET_IMAGE = 100;
-    private static final String TAG = "MainActivity";
-    Boolean isSelected = false;
 
     int image_num = 0;
     int crop_num = 0;
@@ -93,9 +95,10 @@ public class MainActivity extends AppCompatActivity {
 
     Bitmap mask_bitmap;
 
-    //    Bitmap croppedBitmap = null;
     Bitmap croppedBitmap1 = null, croppedBitmap2 = null, croppedBitmap3 = null;
     File croppedFile1, croppedFile2, croppedFile3;
+
+    MainActivity mainActivity;
 
     FirebaseStorage storage = FirebaseStorage.getInstance();
     // Create a storage reference from our app
@@ -109,11 +112,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-
-
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -121,6 +119,8 @@ public class MainActivity extends AppCompatActivity {
         // 상태바를 안보이도록 합니다.
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        mainActivity = this;
 
         // 화면 켜진 상태를 유지합니다.
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
@@ -370,8 +370,9 @@ public class MainActivity extends AppCompatActivity {
                             int width = rect.width;
                             if(height > 25 && width > 25 && height < 250)
                             {
-
                                 Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
+                                RectangleRange rectangleRange = new RectangleRange(y, y+height, x, x+width);
+                                ranges.add(rectangleRange);
                                 //Imgproc.rectangle(orig_img, rect.tl(), rect.br(), new Scalar(255,0,0), 2);
                                 try{
                                     ///////////TODO: 1. Crop rectangle from original image
@@ -423,8 +424,16 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("efficientNet", result);
 
                         ImageView imageView = findViewById(R.id.image_view);
+//                        int width = imageView.getLayoutParams().width;
+//                        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(width, width);
+//                        imageView.setLayoutParams(layoutParams);
                         imageView.setImageBitmap(new_bit);
                         imageView.setVisibility(View.VISIBLE);
+
+                        iv = (ImageView)findViewById(R.id.image_view);
+                        if(iv!=null){
+                            iv.setOnTouchListener(mainActivity);
+                        }
 
                         imageView1.setVisibility(View.INVISIBLE);
                         imageView2.setVisibility(View.INVISIBLE);
@@ -791,5 +800,42 @@ public class MainActivity extends AppCompatActivity {
         result = result + eo.get(4).getName() + ": " +strData+"%";
 
         return result;
+    }
+
+    public boolean onTouch(View v, MotionEvent ev){
+        boolean handledHere = false;
+
+        final int action = ev.getAction();
+
+        final int evX = (int)ev.getX();
+        final int evY = (int)ev.getY();
+
+        ImageView imageView = (ImageView)v.findViewById(R.id.image_view);
+
+        final int imSize = imageView.getLayoutParams().width;
+        final int changeSize = 304;
+        if(imageView == null) return false;
+
+        switch(action){
+            case MotionEvent.ACTION_UP:
+                int changeX = evX * changeSize / imSize;
+                int changeY = evY * changeSize / imSize;
+                int inNum = -1;
+                for(int i=0;i<ranges.size();i++){
+                    if(ranges.get(i).isIn(changeX, changeY)){
+                        inNum = i;
+                        break;
+                    }
+                }
+                if(inNum==-1){
+                    Log.d("asdfasdf", "not inside contour");
+                }
+                else{
+                    Character numb = (char)('A'+inNum);
+                    Toast.makeText(getApplicationContext(), numb+" ", Toast.LENGTH_SHORT).show();
+                }
+                break;
+        }
+        return true;
     }
 }
