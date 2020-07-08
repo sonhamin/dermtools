@@ -1,7 +1,9 @@
 package org.techtown.mnist_sample;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -20,6 +22,14 @@ import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.ml.common.FirebaseMLException;
+import com.google.firebase.ml.custom.FirebaseCustomLocalModel;
+import com.google.firebase.ml.custom.FirebaseModelDataType;
+import com.google.firebase.ml.custom.FirebaseModelInputOutputOptions;
+import com.google.firebase.ml.custom.FirebaseModelInputs;
+import com.google.firebase.ml.custom.FirebaseModelInterpreter;
+import com.google.firebase.ml.custom.FirebaseModelInterpreterOptions;
+import com.google.firebase.ml.custom.FirebaseModelOutputs;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -45,6 +55,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
@@ -58,11 +70,13 @@ import org.opencv.android.BaseLoaderCallback;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
 
     ImageButton imageButton;
-//    ImageView imageView;
+    //    ImageView imageView;
     ImageView imageView1, imageView2, imageView3;
     Button cropButton, analysisButton, addButton;
 
@@ -79,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
 
     Bitmap mask_bitmap;
 
-//    Bitmap croppedBitmap = null;
+    //    Bitmap croppedBitmap = null;
     Bitmap croppedBitmap1 = null, croppedBitmap2 = null, croppedBitmap3 = null;
     File croppedFile1, croppedFile2, croppedFile3;
 
@@ -96,6 +110,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -107,6 +125,23 @@ public class MainActivity extends AppCompatActivity {
         // 화면 켜진 상태를 유지합니다.
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
+        }
+
+
+
+
+
+
 
         setContentView(R.layout.activity_main);
 
@@ -175,11 +210,28 @@ public class MainActivity extends AppCompatActivity {
                     imageView3.setImageBitmap(croppedBitmap3);
                     imageView3.setVisibility(View.VISIBLE);
 
-                    float[][][][][] input = new float[3][1][304][304][3];
+                    //float[][][][][] input = new float[3][1][304][304][3];
                     Map<Integer, Object> outputs = new HashMap<>();
 
                     float[][][][] output1 = new float[1][304][304][1];
                     outputs.put(0,output1);
+
+
+
+                    ByteBuffer in1 = ByteBuffer.allocateDirect(3 * 304 * 304 * 3 * 4);
+
+                    ByteBuffer[] in = new ByteBuffer[3];
+                    in[0] = ByteBuffer.allocateDirect(304 * 304 * 3 * 4);
+                    in[0].order(ByteOrder.nativeOrder());
+                    in[1] = ByteBuffer.allocateDirect(304 * 304 * 3 * 4);
+                    in[1].order(ByteOrder.nativeOrder());
+                    in[2] = ByteBuffer.allocateDirect(304 * 304 * 3 * 4);
+                    in[2].order(ByteOrder.nativeOrder());
+
+
+                    in1.order(ByteOrder.nativeOrder());
+
+
 
                     if(bitHeight[0] == 304 && bitWidth[0] == 304 && bitHeight[1] == 304 && bitWidth[1] == 304 && bitHeight[2] == 304 &&bitWidth[2] == 304){
                         for(int i=0;i<304;i++){
@@ -196,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
                                 int R3 = Color.red(rgb3);
                                 int G3 = Color.green(rgb3);
                                 int B3 = Color.blue(rgb3);
-                                input[0][0][i][j][0] = (float) (R1 / 255.0);
+                                /*input[0][0][i][j][0] = (float) (R1 / 255.0);
                                 input[0][0][i][j][1] = (float) (G1 / 255.0);
                                 input[0][0][i][j][2] = (float) (B1 / 255.0);
                                 input[1][0][i][j][0] = (float) (R2 / 255.0);
@@ -204,26 +256,57 @@ public class MainActivity extends AppCompatActivity {
                                 input[1][0][i][j][2] = (float) (B2 / 255.0);
                                 input[2][0][i][j][0] = (float) (R3 / 255.0);
                                 input[2][0][i][j][1] = (float) (G3 / 255.0);
-                                input[2][0][i][j][2] = (float) (B3 / 255.0);
+                                input[2][0][i][j][2] = (float) (B3 / 255.0);*/
+
+                                in[0].putFloat((float) (R1 / 255.0));
+                                in[0].putFloat((float) (G1 / 255.0));
+                                in[0].putFloat((float) (B1 / 255.0));
+                                in[1].putFloat((float) (R2 / 255.0));
+                                in[1].putFloat((float) (G2 / 255.0));
+                                in[1].putFloat((float) (B2 / 255.0));
+                                in[2].putFloat((float) (R3 / 255.0));
+                                in[2].putFloat((float) (G3 / 255.0));
+                                in[2].putFloat((float) (B3 / 255.0));
+
                             }
                         }
 
-                        MappedByteBuffer tfliteModel = null;
+                        ByteBuffer tfliteModel = null;
                         try {
-                            tfliteModel = FileUtil.loadMappedFile(getApplicationContext(), "real_unet.tflite");
+                            tfliteModel = FileUtil.loadMappedFile(getApplicationContext(), "pruned_with_def2.tflite");
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                        //asdf
 
+                        Runtime.getRuntime().gc();
+
+
+                        Log.e("asdf", "START");
+
+                        long startTime = System.currentTimeMillis();
                         Interpreter.Options tfliteOptions = new Interpreter.Options();
-                        tfliteOptions.setNumThreads(3);
+                        tfliteOptions.setNumThreads(4);
+                        tfliteOptions.setAllowFp16PrecisionForFp32(true);
                         Interpreter tflite = new Interpreter(tfliteModel, tfliteOptions);
-                        tflite.runForMultipleInputsOutputs(input, outputs);
+                        //Interpreter tflite = new Interpreter(tfliteModel);
+
+
+
+                        tflite.runForMultipleInputsOutputs(in, outputs);
+
+                        long difference = System.currentTimeMillis() - startTime;
+                        Log.e("DIFFERENCE", "Diff: " + String.valueOf(difference));
+                        tflite.close();
+                        Log.e("asdf", "DONE");
+
+
+
 
                         mask_bitmap = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
                         for(int i=0;i<304;i++){
                             for(int j=0;j<304;j++){
-                                if(output1[0][i][j][0]>=0.15){
+                                if(output1[0][i][j][0]>=0.1){
                                     mask_bitmap.setPixel(j, i, Color.WHITE);
                                 }else{
                                     mask_bitmap.setPixel(j, i, Color.BLACK);
@@ -232,6 +315,8 @@ public class MainActivity extends AppCompatActivity {
                         }
                         imageView3.setImageBitmap(mask_bitmap);
                         //coverImageIntArray1D1 -- original image
+
+
 
                         int[] unet_result = new int[304 * 304];
                         mask_bitmap.getPixels(unet_result, 0, 304, 0, 0, 304, 304);
@@ -255,8 +340,8 @@ public class MainActivity extends AppCompatActivity {
                         MappedByteBuffer tfliteModel2 = null;
                         Interpreter effNet = null;
                         try{
-                            tfliteModel2 = FileUtil.loadMappedFile(getApplicationContext(), "real_efficientnet.tflite");
-                             effNet = new Interpreter(tfliteModel2, tfliteOptions);
+                            tfliteModel2 = FileUtil.loadMappedFile(getApplicationContext(), "eff_net_basic.tflite");
+                            effNet = new Interpreter(tfliteModel2, tfliteOptions);
                         } catch (IOException e){
                             e.printStackTrace();
                         }
@@ -283,7 +368,7 @@ public class MainActivity extends AppCompatActivity {
                             int y = rect.y;
                             int height = rect.height;
                             int width = rect.width;
-                            if(height > 20 && width > 20)
+                            if(height > 25 && width > 25 && height < 250)
                             {
 
                                 Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
@@ -301,7 +386,14 @@ public class MainActivity extends AppCompatActivity {
                                     bmps[i] = Bitmap.createScaledBitmap(bmp, 224, 224, true);
                                     ///////////TODO: 3. Input resized image into efficient-net
                                     EfficientNet efficientNet = new EfficientNet(bmps[i], getApplicationContext(), effNet);
+
+                                    startTime = System.currentTimeMillis();
+
                                     efficientNet.RunModel();
+
+                                    difference = System.currentTimeMillis() - startTime;
+                                    Log.e("DIFFERENCE", "Diff: " + String.valueOf(difference));
+
                                     bmpOutputs[i] = efficientNet.getOutput();
 //                                for(int j=0;j<18;j++){
 //                                    Log.d("efficientNet", "bmpOutputs["+i+"][0]["+j+"]: "+bmpOutputs[i][0][j]);
@@ -322,7 +414,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
 
                             }
-                    }
+                        }
                         Bitmap new_bit = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
                         Utils.matToBitmap(orig_img, new_bit);
                         imageView2.setImageBitmap(new_bit);
@@ -345,7 +437,6 @@ public class MainActivity extends AppCompatActivity {
                             fos = new FileOutputStream(mypath);
                             new_bit.compress(Bitmap.CompressFormat.JPEG, 100, fos);
                             fos.close();
-
                         } catch (IOException e) {
                             e.printStackTrace();
                         }*/
@@ -357,8 +448,10 @@ public class MainActivity extends AppCompatActivity {
 
 
                 }
+
             }
         });
+
     }
 
     private void cropImage(Uri photoUri) {
@@ -447,6 +540,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         if (requestCode == Crop.REQUEST_CROP && resultCode == RESULT_OK) {
+            Log.e("asdfasdf", "22HERE WITH: " + crop_num);
             switch (crop_num){
                 case 1:
                     imageView1.setImageURI(cropUri1);
@@ -478,6 +572,7 @@ public class MainActivity extends AppCompatActivity {
 
                 }
             } catch (Exception e){
+                Log.e("except", String.valueOf(e));
 
             }
         }
@@ -486,16 +581,13 @@ public class MainActivity extends AppCompatActivity {
             try{
                 Bitmap enBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), enUri);
                 Bitmap enResizeBitmap = Bitmap.createScaledBitmap(enBitmap, 224, 224, true);
-
                 ImageView imageView = findViewById(R.id.image_view);
                 imageView.setImageBitmap(enResizeBitmap);
                 imageView.setVisibility(View.VISIBLE);
                 imageButton.setVisibility(View.GONE);
-
                 EfficientNet efficientNet = new EfficientNet(enResizeBitmap, this.getApplicationContext());
                 efficientNet.RunModel();
                 float[][] output = efficientNet.getOutput();
-
                 if(output != null){
                     String outputString = new String();
                     for(int i=0;i<17;i++) {
@@ -657,8 +749,8 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<EfficientOuput> eo = new ArrayList<>();
 
         String[] outputNames = {"Acne", "Actinic", "Atopic", "Bullous", "Cellulitis", "Eczema", "Exanthems", "Herpes",
-                                "Hives", "Light Disease", "Lupus", "Contact Dermititis", "Psoriasis", "Scabies",
-                                "Systemic", "Tinea", "Vasculitis", "Warts"};
+                "Hives", "Light Disease", "Lupus", "Contact Dermititis", "Psoriasis", "Scabies",
+                "Systemic", "Tinea", "Vasculitis", "Warts"};
 
 
         for(int i=0;i<18;i++){

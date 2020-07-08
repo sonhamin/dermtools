@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-
+apply plugin: 'com.google.gms.google-services'
 
 android {
     compileSdkVersion 28
@@ -34,8 +34,8 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
 
     implementation 'org.tensorflow:tensorflow-android:+'
-    implementation 'org.tensorflow:tensorflow-lite:+'
-    implementation('org.tensorflow:tensorflow-lite-support:0.0.0-nightly') { changing = true }
+    implementation 'org.tensorflow:tensorflow-lite:0.0.0-nightly'
+    implementation('org.tensorflow:tensorflow-lite-support:0.0.0-nightly')
 
     implementation 'com.soundcloud.android:android-crop:1.0.1@aar'
     implementation 'com.theartofdev.edmodo:android-image-cropper:2.6.+'
@@ -43,6 +43,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-analytics:17.2.2'
     implementation 'com.google.firebase:firebase-core:17.0.0'
     implementation 'com.google.firebase:firebase-storage:19.1.1'
+    implementation 'com.google.firebase:firebase-ml-model-interpreter:22.0.3'
+    implementation 'org.tensorflow:tensorflow-lite:2.0.0'
 }
 
 apply plugin: 'com.google.gms.google-services'
