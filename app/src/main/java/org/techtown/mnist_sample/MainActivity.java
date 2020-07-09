@@ -23,10 +23,15 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.ml.common.FirebaseMLException;
+import com.google.firebase.ml.common.modeldownload.FirebaseModelDownloadConditions;
+import com.google.firebase.ml.common.modeldownload.FirebaseModelManager;
 import com.google.firebase.ml.custom.FirebaseCustomLocalModel;
+import com.google.firebase.ml.custom.FirebaseCustomRemoteModel;
 import com.google.firebase.ml.custom.FirebaseModelDataType;
 import com.google.firebase.ml.custom.FirebaseModelInputOutputOptions;
 import com.google.firebase.ml.custom.FirebaseModelInputs;
@@ -89,19 +94,17 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
     int image_num = 0;
     int crop_num = 0;
-
     float[][][] bmpOutputs;
-
     Uri imageUri1, imageUri2, imageUri3;
     Uri cropUri1, cropUri2, cropUri3;
 
     Bitmap mask_bitmap;
+    Bitmap resizedBitmap;
 
     Bitmap croppedBitmap1 = null, croppedBitmap2 = null, croppedBitmap3 = null;
     File croppedFile1, croppedFile2, croppedFile3;
 
     ArrayList<Bitmap> croppedBitmaps = new ArrayList<>();
-
     MainActivity mainActivity;
 
     FirebaseStorage storage = FirebaseStorage.getInstance();
@@ -143,7 +146,39 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
 
 
+        final FirebaseCustomRemoteModel remoteModel_unet =
+                new FirebaseCustomRemoteModel.Builder("unet_basic_withopt66.tflite").build();
 
+        final FirebaseCustomLocalModel localModel_unet = new FirebaseCustomLocalModel.Builder()
+                .setAssetFilePath("unet_basic_withopt66.tflite")
+                .build();
+
+        final FirebaseCustomRemoteModel remoteModel_effnet =
+                new FirebaseCustomRemoteModel.Builder("eff_net_basic.tflite").build();
+
+        final FirebaseCustomLocalModel localModel_effnet = new FirebaseCustomLocalModel.Builder()
+                .setAssetFilePath("eff_net_basic.tflite")
+                .build();
+
+        FirebaseModelDownloadConditions conditions = new FirebaseModelDownloadConditions.Builder()
+                .requireWifi()
+                .build();
+
+        /*FirebaseModelManager.getInstance().download(remoteModel_unet, conditions)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        Log.e("asdf", "unet download sucess");
+                    }
+                });
+
+        FirebaseModelManager.getInstance().download(remoteModel_effnet, conditions)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        Log.e("asdf", "effnet download sucess");
+                    }
+                });*/
 
 
 
@@ -188,7 +223,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     int[] bitWidth = new int[3];
                     int[] bitHeight = new int[3];
 
-                    Bitmap resizedBitmap = null;
+
                     resizedBitmap = Bitmap.createScaledBitmap(croppedBitmap1, 304, 304, true);
 
                     Bitmap[] combs = decompose(resizedBitmap);
@@ -214,13 +249,18 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     imageView3.setImageBitmap(croppedBitmap3);
                     imageView3.setVisibility(View.VISIBLE);
 
-                    //float[][][][][] input = new float[3][1][304][304][3];
+
+
+                    final float[][][][] input1 = new float[1][304][304][3];
+                    final float[][][][] input2 = new float[1][304][304][3];
+                    final float[][][][] input3 = new float[1][304][304][3];
+
+
+                    /*float[][][][][] input = new float[3][1][304][304][3];
                     Map<Integer, Object> outputs = new HashMap<>();
 
                     float[][][][] output1 = new float[1][304][304][1];
                     outputs.put(0,output1);
-
-
 
                     ByteBuffer in1 = ByteBuffer.allocateDirect(3 * 304 * 304 * 3 * 4);
 
@@ -232,8 +272,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     in[2] = ByteBuffer.allocateDirect(304 * 304 * 3 * 4);
                     in[2].order(ByteOrder.nativeOrder());
 
-
-                    in1.order(ByteOrder.nativeOrder());
+                    in1.order(ByteOrder.nativeOrder());*/
 
 
 
@@ -252,17 +291,17 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                 int R3 = Color.red(rgb3);
                                 int G3 = Color.green(rgb3);
                                 int B3 = Color.blue(rgb3);
-                                /*input[0][0][i][j][0] = (float) (R1 / 255.0);
-                                input[0][0][i][j][1] = (float) (G1 / 255.0);
-                                input[0][0][i][j][2] = (float) (B1 / 255.0);
-                                input[1][0][i][j][0] = (float) (R2 / 255.0);
-                                input[1][0][i][j][1] = (float) (G2 / 255.0);
-                                input[1][0][i][j][2] = (float) (B2 / 255.0);
-                                input[2][0][i][j][0] = (float) (R3 / 255.0);
-                                input[2][0][i][j][1] = (float) (G3 / 255.0);
-                                input[2][0][i][j][2] = (float) (B3 / 255.0);*/
+                                input1[0][i][j][0] = (float) (R1 / 255.0);
+                                input1[0][i][j][1] = (float) (G1 / 255.0);
+                                input1[0][i][j][2] = (float) (B1 / 255.0);
+                                input2[0][i][j][0] = (float) (R2 / 255.0);
+                                input2[0][i][j][1] = (float) (G2 / 255.0);
+                                input2[0][i][j][2] = (float) (B2 / 255.0);
+                                input3[0][i][j][0] = (float) (R3 / 255.0);
+                                input3[0][i][j][1] = (float) (G3 / 255.0);
+                                input3[0][i][j][2] = (float) (B3 / 255.0);
 
-                                in[0].putFloat((float) (R1 / 255.0));
+                                /*in[0].putFloat((float) (R1 / 255.0));
                                 in[0].putFloat((float) (G1 / 255.0));
                                 in[0].putFloat((float) (B1 / 255.0));
                                 in[1].putFloat((float) (R2 / 255.0));
@@ -270,179 +309,48 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                 in[1].putFloat((float) (B2 / 255.0));
                                 in[2].putFloat((float) (R3 / 255.0));
                                 in[2].putFloat((float) (G3 / 255.0));
-                                in[2].putFloat((float) (B3 / 255.0));
+                                in[2].putFloat((float) (B3 / 255.0));*/
 
                             }
                         }
 
-                        ByteBuffer tfliteModel = null;
-                        try {
-                            tfliteModel = FileUtil.loadMappedFile(getApplicationContext(), "pruned_with_def2.tflite");
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        //asdf
+                        FirebaseModelManager.getInstance().isModelDownloaded(remoteModel_unet)
+                                .addOnSuccessListener(new OnSuccessListener<Boolean>() {
+                                    @Override
+                                    public void onSuccess(Boolean isDownloaded) {
+                                        FirebaseModelInterpreterOptions options2;
+                                        if (isDownloaded) {
+                                            options2 = new FirebaseModelInterpreterOptions.Builder(remoteModel_unet).build();
+                                        } else {
+                                            options2 = new FirebaseModelInterpreterOptions.Builder(localModel_unet).build();
+                                        }
+                                        segment_and_classify(input1, input2, input3, options2);
 
-                        Runtime.getRuntime().gc();
+                                    }
+                                });
 
 
-                        Log.e("asdf", "START");
 
                         long startTime = System.currentTimeMillis();
-                        Interpreter.Options tfliteOptions = new Interpreter.Options();
-                        tfliteOptions.setNumThreads(4);
-                        tfliteOptions.setAllowFp16PrecisionForFp32(true);
-                        Interpreter tflite = new Interpreter(tfliteModel, tfliteOptions);
-                        //Interpreter tflite = new Interpreter(tfliteModel);
-
-
-
-                        tflite.runForMultipleInputsOutputs(in, outputs);
-
                         long difference = System.currentTimeMillis() - startTime;
                         Log.e("DIFFERENCE", "Diff: " + String.valueOf(difference));
-                        tflite.close();
                         Log.e("asdf", "DONE");
 
 
 
+                        //List<Rect> rect_list = new ArrayList<>();
+                        /*rect_list.add(rect);
+                        Log.e("length", "len: " + rect_list.size());
 
-                        mask_bitmap = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
-                        for(int i=0;i<304;i++){
-                            for(int j=0;j<304;j++){
-                                if(output1[0][i][j][0]>=0.1){
-                                    mask_bitmap.setPixel(j, i, Color.WHITE);
-                                }else{
-                                    mask_bitmap.setPixel(j, i, Color.BLACK);
-                                }
-                            }
-                        }
-                        imageView3.setImageBitmap(mask_bitmap);
-                        //coverImageIntArray1D1 -- original image
-
-
-
-                        int[] unet_result = new int[304 * 304];
-                        mask_bitmap.getPixels(unet_result, 0, 304, 0, 0, 304, 304);
-                        Mat contour_input = new Mat();
-                        Mat contour_input22 = new Mat();
-                        Utils.bitmapToMat(mask_bitmap, contour_input);
-
-                        Imgproc.cvtColor(contour_input, contour_input22, Imgproc.COLOR_BGR2GRAY);
-                        List<MatOfPoint> contours = new ArrayList<>();
-                        Mat hierarchy = new Mat();
-
-                        Imgproc.findContours(contour_input22, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_NONE);
-                        Mat orig_img = new Mat();
-                        Utils.bitmapToMat(resizedBitmap, orig_img);
-
-                        Bitmap[] bmps = new Bitmap[contours.size()];
-                        bmpOutputs = new float[contours.size()][1][18];
-
-                        String result = "";
-
-                        MappedByteBuffer tfliteModel2 = null;
-                        Interpreter effNet = null;
-                        try{
-                            tfliteModel2 = FileUtil.loadMappedFile(getApplicationContext(), "eff_net_basic.tflite");
-                            effNet = new Interpreter(tfliteModel2, tfliteOptions);
-                        } catch (IOException e){
-                            e.printStackTrace();
-                        }
-
-
-                        int counter = 0;
-                        for (int i=0; i<contours.size(); i++) {
-
-                            List<MatOfPoint> contour = new ArrayList<>();
-                            contour.add(contours.get(i));
-
-                            Rect rect = Imgproc.boundingRect(contour.get(0));
-
-                            if(rect.x >= 10){ rect.x-=10; }
-                            if(rect.y >= 10){ rect.y-=10; }
-
-                            if(rect.x + rect.width + 20 < orig_img.cols()){ rect.width+=20; }
-                            else{rect.width=orig_img.cols()-rect.x;}
-
-                            if(rect.y + rect.height + 20 < orig_img.rows()){ rect.height+=20; }
-                            else{rect.height=orig_img.rows()-rect.y;}
-
-                            int x = rect.x;
-                            int y = rect.y;
-                            int height = rect.height;
-                            int width = rect.width;
-                            if(height > 25 && width > 25 && height < 250)
+                        for(int it=0; it<rect_list.size(); it++)
+                        {
+                            if((rect & rect_list.get(it)).area() > 0)
                             {
-                                Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
-                                RectangleRange rectangleRange = new RectangleRange(y, y+height, x, x+width);
-                                ranges.add(rectangleRange);
-                                //Imgproc.rectangle(orig_img, rect.tl(), rect.br(), new Scalar(255,0,0), 2);
-                                try{
-                                    ///////////TODO: 1. Crop rectangle from original image
-                                    Bitmap originalBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri1);
-                                    Mat originImg = new Mat(originalBitmap.getWidth() ,originalBitmap.getHeight(), CvType.CV_8UC4);
-                                    Utils.bitmapToMat(originalBitmap, originImg);
-                                    Mat subImg = originImg.submat(rect);
-                                    Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                                    Utils.matToBitmap(subImg, bmp);
-                                    imageView3.setImageBitmap(bmp);
-                                    ///////////TODO: 2. Resize cropped image to 224,224,3
-                                    bmps[i] = Bitmap.createScaledBitmap(bmp, 224, 224, true);
-                                    croppedBitmaps.add(bmps[i]);
-                                    ///////////TODO: 3. Input resized image into efficient-net
-                                    EfficientNet efficientNet = new EfficientNet(bmps[i], getApplicationContext(), effNet);
-
-                                    startTime = System.currentTimeMillis();
-
-                                    efficientNet.RunModel();
-
-                                    difference = System.currentTimeMillis() - startTime;
-                                    Log.e("DIFFERENCE", "Diff: " + String.valueOf(difference));
-
-                                    bmpOutputs[i] = efficientNet.getOutput();
-//                                for(int j=0;j<18;j++){
-//                                    Log.d("efficientNet", "bmpOutputs["+i+"][0]["+j+"]: "+bmpOutputs[i][0][j]);
-//                                }
-                                    Character numb = (char)('A'+counter);
-                                    counter++;
-                                    String a = outputToString(efficientNet.getOutput());
-
-                                    result = result + numb + ": "+a + "\n";
-
-                                    ///////////TODO: 4. Add textview to the center of cropped image
-                                    String text = "" + numb;
-                                    Point pnt = new Point(x + width/2 - 10, y + height/2 + 10);
-                                    int fontFace = 2;
-                                    double fontScale = 1.0;
-                                    Imgproc.putText(orig_img, text, pnt, fontFace, fontScale, Scalar.all(255));
-                                } catch (Exception e){
-                                }
 
                             }
-                        }
-                        Bitmap new_bit = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
-                        Utils.matToBitmap(orig_img, new_bit);
-                        imageView2.setImageBitmap(new_bit);
-                        TextView textView = findViewById(R.id.textView);
-                        textView.setText(result);
-                        Log.d("efficientNet", result);
+                        }*/
 
-                        ImageView imageView = findViewById(R.id.image_view);
-//                        int width = imageView.getLayoutParams().width;
-//                        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(width, width);
-//                        imageView.setLayoutParams(layoutParams);
-                        imageView.setImageBitmap(new_bit);
-                        imageView.setVisibility(View.VISIBLE);
 
-                        iv = (ImageView)findViewById(R.id.image_view);
-                        if(iv!=null){
-                            iv.setOnTouchListener(mainActivity);
-                        }
-
-                        imageView1.setVisibility(View.INVISIBLE);
-                        imageView2.setVisibility(View.INVISIBLE);
-                        imageView3.setVisibility(View.INVISIBLE);
 
 
                         /*File mypath = new File ("/document/raw:/storage/emulated/0/Download/", "masked_img.jpg");
@@ -464,9 +372,280 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 }
 
             }
+
+
+            private void segment_and_classify(float[][][][] input1,float[][][][] input2,float[][][][] input3,FirebaseModelInterpreterOptions options2) {
+                try {
+
+                    FirebaseModelInterpreter interpreter = FirebaseModelInterpreter.getInstance(options2);
+                    FirebaseModelInputOutputOptions inputOutputOptions = null;
+                    try {
+                        inputOutputOptions =
+                                new FirebaseModelInputOutputOptions.Builder()
+                                        .setInputFormat(0, FirebaseModelDataType.FLOAT32, new int[]{1, 304, 304, 3})
+                                        .setInputFormat(1, FirebaseModelDataType.FLOAT32, new int[]{1, 304, 304, 3})
+                                        .setInputFormat(2, FirebaseModelDataType.FLOAT32, new int[]{1, 304, 304, 3})
+                                        .setOutputFormat(0, FirebaseModelDataType.FLOAT32, new int[]{1, 304, 304, 1})
+                                        .build();
+                        Log.e("asdf", "yes: 2");
+                    } catch (FirebaseMLException e) {
+                        e.printStackTrace();
+                    }
+
+
+
+                    FirebaseModelInputs inputs = null;
+                    try {
+                        inputs = new FirebaseModelInputs.Builder()
+                                .add(input1)  // add() as many input arrays as your model requires
+                                .add(input2)
+                                .add(input3)
+                                .build();
+                        Log.e("asdf", "yes: 3");
+                    } catch (FirebaseMLException e) {
+                        e.printStackTrace();
+                    }
+
+                    interpreter.run(inputs, inputOutputOptions)
+                            .addOnSuccessListener(
+                                    new OnSuccessListener<FirebaseModelOutputs>() {
+                                        @Override
+                                        public void onSuccess(FirebaseModelOutputs result) {
+                                            Log.e("asdf", "done masking");
+                                            float[][][][] output2 = result.getOutput(0);
+                                            mask_bitmap = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
+                                            for(int i=0;i<304;i++){
+                                                for(int j=0;j<304;j++){
+                                                    if(output2[0][i][j][0]>=0.10){          mask_bitmap.setPixel(j, i, Color.WHITE);           }
+                                                    else                         {          mask_bitmap.setPixel(j, i, Color.BLACK);           }
+                                                }
+                                            }
+                                            imageView3.setImageBitmap(mask_bitmap);
+
+                                            init_efficientnet();
+                                        }
+                                    })
+                            .addOnFailureListener(
+                                    new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {        e.printStackTrace();                               }
+                                    });
+                } catch (FirebaseMLException e) {                                            e.printStackTrace();                               }
+
+            }
+
+            private void init_efficientnet() {
+                int[] unet_result = new int[304 * 304];
+                mask_bitmap.getPixels(unet_result, 0, 304, 0, 0, 304, 304);
+                Mat contour_input = new Mat();
+                Mat contour_input22 = new Mat();
+                Utils.bitmapToMat(mask_bitmap, contour_input);
+
+                Imgproc.cvtColor(contour_input, contour_input22, Imgproc.COLOR_BGR2GRAY);
+                final List<MatOfPoint> contours = new ArrayList<>();
+                Mat hierarchy = new Mat();
+
+                Imgproc.findContours(contour_input22, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_NONE);
+                final Mat orig_img = new Mat();
+                Utils.bitmapToMat(resizedBitmap, orig_img);
+
+                final Bitmap[] bmps = new Bitmap[contours.size()];
+                bmpOutputs = new float[contours.size()][1][18];
+
+
+                FirebaseModelManager.getInstance().isModelDownloaded(remoteModel_effnet)
+                        .addOnSuccessListener(new OnSuccessListener<Boolean>() {
+                            @Override
+                            public void onSuccess(Boolean isDownloaded) {
+                                FirebaseModelInterpreterOptions options2;
+                                if (isDownloaded) {
+                                    options2 = new FirebaseModelInterpreterOptions.Builder(remoteModel_effnet).build();
+                                } else {
+                                    options2 = new FirebaseModelInterpreterOptions.Builder(localModel_effnet).build();
+                                }
+                                FirebaseModelInterpreter effnet_interpreter = null;
+                                try {
+                                    effnet_interpreter = FirebaseModelInterpreter.getInstance(options2);
+                                } catch (FirebaseMLException e) {
+                                    e.printStackTrace();
+                                }
+                                FirebaseModelInputOutputOptions inputOutputOptions = null;
+                                try {
+                                    inputOutputOptions =
+                                            new FirebaseModelInputOutputOptions.Builder()
+                                                    .setInputFormat(0, FirebaseModelDataType.FLOAT32, new int[]{1, 224, 224, 3})
+                                                    .setOutputFormat(0, FirebaseModelDataType.FLOAT32, new int[]{1, 18})
+                                                    .build();
+                                    Log.e("asdf", "yes22: 2");
+                                } catch (FirebaseMLException e) {
+                                    e.printStackTrace();
+                                }
+
+                                classify(contours, orig_img, bmps, effnet_interpreter, inputOutputOptions);
+
+
+
+                            }
+                        });
+            }
         });
 
     }
+
+    String res_all = "";
+    Mat orig_changed;
+    int counter = 0;
+
+    private void classify(List<MatOfPoint> contours, Mat orig_img, Bitmap[] bmps,  FirebaseModelInterpreter effnet_interpreter, FirebaseModelInputOutputOptions inputOutputOptions) {
+
+        String result = "";
+        orig_changed = orig_img;
+
+        for (int i=0; i<contours.size(); i++) {
+
+            List<MatOfPoint> contour = new ArrayList<>();
+            contour.add(contours.get(i));
+
+            Rect rect = Imgproc.boundingRect(contour.get(0));
+
+            int xx = rect.x;
+            int yy = rect.y;
+            int hh = rect.height;
+            int ww = rect.width;
+
+            if(rect.x >= 10){ rect.x-=10; }
+            if(rect.y >= 10){ rect.y-=10; }
+
+            if(rect.x + rect.width + 20 < orig_img.cols()){ rect.width+=20; }
+            else{rect.width=orig_img.cols()-rect.x;}
+
+            if(rect.y + rect.height + 20 < orig_img.rows()){ rect.height+=20; }
+            else{rect.height=orig_img.rows()-rect.y;}
+
+            final int x = rect.x;
+            final int y = rect.y;
+            final int height = rect.height;
+            final int width = rect.width;
+            if(height > 25 && width > 25 && height < 250)
+            {
+
+
+
+                Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
+                RectangleRange rectangleRange = new RectangleRange(yy, yy+hh, xx, xx+ww);
+                ranges.add(rectangleRange);
+                Imgproc.rectangle(orig_img, rect.tl(), rect.br(), new Scalar(255,0,0), 2);
+                try{
+                    ///////////TODO: 1. Crop rectangle from original image
+                    Bitmap originalBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri1);
+                    Mat originImg = new Mat(originalBitmap.getWidth() ,originalBitmap.getHeight(), CvType.CV_8UC4);
+                    Utils.bitmapToMat(originalBitmap, originImg);
+                    Mat subImg = originImg.submat(rect);
+                    Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+                    Utils.matToBitmap(subImg, bmp);
+                    imageView3.setImageBitmap(bmp);
+                    ///////////TODO: 2. Resize cropped image to 224,224,3
+                    bmps[i] = Bitmap.createScaledBitmap(bmp, 224, 224, true);
+                    croppedBitmaps.add(bmps[i]);
+
+                    ///////////TODO: 3. Input resized image into efficient-net
+
+
+
+
+                    int[] temp_eff = new int[224*224];
+                    bmps[i].getPixels(temp_eff, 0, 224, 0, 0, 224, 224);
+                    float [][][][] effin = new float[1][224][224][3];
+                    for(int a=0; a<224; a++)
+                        for(int b=0; b<224; b++)
+                        {
+                            int rgb1 = temp_eff[a*224+b];
+                            int R1 = Color.red(rgb1);
+                            int G1 = Color.green(rgb1);
+                            int B1 = Color.blue(rgb1);
+                            effin[0][a][b][0] = (float) (R1);
+                            effin[0][a][b][1] = (float) (G1);
+                            effin[0][a][b][2] = (float) (B1);
+
+                        }
+
+
+                    FirebaseModelInputs inputs = new FirebaseModelInputs.Builder()
+                            .add(effin)
+                            .build();
+
+                    effnet_interpreter.run(inputs, inputOutputOptions)
+                            .addOnSuccessListener(
+                                    new OnSuccessListener<FirebaseModelOutputs>() {
+                                        @Override
+                                        public void onSuccess(FirebaseModelOutputs result) {
+                                            float[][] output = result.getOutput(0);
+                                            bmpOutputs[counter] = result.getOutput(0);
+
+                                            Log.e("adsf", "out: " + outputToString(output) + "  " + output[0][0] + "  " + output[0][5] + "     ");
+
+
+                                            Character numb = (char)('A'+counter);
+                                            counter++;
+
+                                            String a = outputToString(output);
+                                            res_all = res_all + numb + ": "+a + "\n";
+
+                                            ///////////TODO: 4. Add textview to the center of cropped image
+                                            String text = "" + numb;
+                                            Point pnt = new Point(x + width/2 - 10, y + height/2 + 10);
+                                            int fontFace = 2;
+                                            double fontScale = 1.0;
+                                            Imgproc.putText(orig_changed, text, pnt, fontFace, fontScale, Scalar.all(255));
+                                            Bitmap new_bit = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
+                                            Utils.matToBitmap(orig_changed, new_bit);
+                                            imageView2.setImageBitmap(new_bit);
+                                            TextView textView = findViewById(R.id.textView);
+                                            textView.setText(res_all);
+                                            Log.d("efficientNet", res_all);
+
+                                            ImageView imageView = findViewById(R.id.image_view);
+//                        int width = imageView.getLayoutParams().width;
+//                        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(width, width);
+//                        imageView.setLayoutParams(layoutParams);
+                                            imageView.setImageBitmap(new_bit);
+                                            imageView.setVisibility(View.VISIBLE);
+
+                                            iv = (ImageView)findViewById(R.id.image_view);
+                                            if(iv!=null){
+                                                iv.setOnTouchListener(mainActivity);
+                                            }
+
+
+
+                                        }
+                                    })
+                            .addOnFailureListener(
+                                    new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {    e.printStackTrace();     }
+                                    });
+
+
+
+
+
+
+
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+
+            }
+        }
+
+
+
+        imageView1.setVisibility(View.INVISIBLE);
+        imageView2.setVisibility(View.INVISIBLE);
+        imageView3.setVisibility(View.INVISIBLE);
+    }
+
 
     private void cropImage(Uri photoUri) {
         /**
@@ -779,6 +958,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
         Collections.sort(eo);
 
+
+
         String result = "";
         for(int i=0;i<4;i++){
             float data = eo.get(i).getData();
@@ -827,6 +1008,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         return result;
     }
 
+
+
+
     public boolean onTouch(View v, MotionEvent ev){
         boolean handledHere = false;
 
@@ -853,7 +1037,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     }
                 }
                 if(inNum==-1){
-                    Log.d("asdfasdf", "not inside contour");
+                    Log.d("asdfasdf", "not inside contour   : " + ranges.size());
                 }
                 else{
                     Character numb = (char)('A'+inNum);
