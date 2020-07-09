@@ -90,6 +90,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     int image_num = 0;
     int crop_num = 0;
 
+    float[][][] bmpOutputs;
+
     Uri imageUri1, imageUri2, imageUri3;
     Uri cropUri1, cropUri2, cropUri3;
 
@@ -97,6 +99,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
     Bitmap croppedBitmap1 = null, croppedBitmap2 = null, croppedBitmap3 = null;
     File croppedFile1, croppedFile2, croppedFile3;
+
+    ArrayList<Bitmap> croppedBitmaps = new ArrayList<>();
 
     MainActivity mainActivity;
 
@@ -333,7 +337,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                         Utils.bitmapToMat(resizedBitmap, orig_img);
 
                         Bitmap[] bmps = new Bitmap[contours.size()];
-                        float[][][] bmpOutputs = new float[contours.size()][1][18];
+                        bmpOutputs = new float[contours.size()][1][18];
 
                         String result = "";
 
@@ -385,6 +389,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                     imageView3.setImageBitmap(bmp);
                                     ///////////TODO: 2. Resize cropped image to 224,224,3
                                     bmps[i] = Bitmap.createScaledBitmap(bmp, 224, 224, true);
+                                    croppedBitmaps.add(bmps[i]);
                                     ///////////TODO: 3. Input resized image into efficient-net
                                     EfficientNet efficientNet = new EfficientNet(bmps[i], getApplicationContext(), effNet);
 
@@ -610,6 +615,12 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 Log.d("exception", e.toString());
             }
         }*/
+        if(requestCode==1){
+            if(resultCode==RESULT_OK){
+                String result = data.getStringExtra("result");
+                Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private Bitmap[] decompose(Bitmap croppedBitmap) {
@@ -765,19 +776,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         for(int i=0;i<18;i++){
             eo.add(new EfficientOuput(outputNames[i], op[0][i]));
         }
-//        Log.d("efficient", "정렬 전");
-//        for(EfficientOuput efficientOuput : eo){
-//            Log.d("efficient", "["+efficientOuput.getNum()+", "+efficientOuput.getData()+"]");
-//        }
-
 
         Collections.sort(eo);
-
-//
-//        Log.d("efficient", "정렬 후");
-//        for(EfficientOuput efficientOuput : eo){
-//            Log.d("efficient", "["+efficientOuput.getNum()+", "+efficientOuput.getData()+"]");
-//        }
 
         String result = "";
         for(int i=0;i<4;i++){
@@ -798,6 +798,31 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         else if(data>=0.01) strData = String.format("%.2f", data);
         else strData = String.format("%.3f", data);
         result = result + eo.get(4).getName() + ": " +strData+"%";
+
+        return result;
+    }
+
+    String outputToData(float[][] op){
+        ArrayList<EfficientOuput> eo = new ArrayList<>();
+
+        String[] outputNames = {"Acne", "Actinic", "Atopic", "Bullous", "Cellulitis", "Eczema", "Exanthems", "Herpes",
+                "Hives", "Light Disease", "Lupus", "Contact Dermititis", "Psoriasis", "Scabies",
+                "Systemic", "Tinea", "Vasculitis", "Warts"};
+
+
+        for(int i=0;i<18;i++){
+            eo.add(new EfficientOuput(outputNames[i], op[0][i]));
+        }
+
+        Collections.sort(eo);
+
+        String name = eo.get(0).getName();
+        Float confidence = eo.get(0).getData()*100;
+
+        String result = "Name: "+name + "\nConfidence: ";
+        if(confidence>=1) result = result + String.format("%.0f", confidence);
+        else if(confidence>=0.1) result = result + String.format("%.1f", confidence);
+        else result = result + String.format("%.2f", confidence);
 
         return result;
     }
@@ -833,6 +858,11 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 else{
                     Character numb = (char)('A'+inNum);
                     Toast.makeText(getApplicationContext(), numb+" ", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(this, PopupActivity.class);
+                    intent.putExtra("image", croppedBitmaps.get(inNum));
+                    intent.putExtra("numb", numb+"");
+                    intent.putExtra("data", outputToData(bmpOutputs[inNum]));
+                    startActivityForResult(intent, 1);
                 }
                 break;
         }

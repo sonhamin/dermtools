@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="#eeeeee"
+    android:orientation="vertical"
+    android:layout_width="300dp"
+    android:layout_height="wrap_content">
+
+    <!-- 타이틀바 -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <TextView
+            android:id="@+id/notice"
+            android:text="Notice"
+            android:textSize="20sp"
+            android:textColor="#fff"
+            android:gravity="center"
+            android:background="#ff7a00"
+            android:layout_width="match_parent"
+            android:layout_height="53dp" />
+    </LinearLayout>
+    <!-- //end 타이틀바 -->
+
+    <!-- Notice -->
+    <LinearLayout
+        android:padding="12dp"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="200dp">
+        <ImageView
+            android:id="@+id/popup_imageView"
+            android:layout_width="0px"
+            android:scaleType="fitCenter"
+            android:layout_weight="4"
+            android:layout_height="match_parent"></ImageView>
+        <TextView
+            android:layout_marginLeft="10dp"
+            android:id="@+id/txtText"
+            android:layout_weight="5"
+            android:textSize="15sp"
+            android:textColor="#000"
+            android:alpha="0.87"
+            android:gravity="center"
+            android:layout_marginBottom="3dp"
+            android:layout_width="0px"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+    <!-- Notice -->
+
+    <View
+        android:background="#66bdbdbd"
+        android:layout_width="match_parent"
+        android:layout_height="1dp" />
+
+    <!-- 닫기 버튼 -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <Button
+            android:layout_width="130dp"
+            android:layout_height="40dp"
+            android:text="More Info"
+            android:id="@+id/mibtn"
+            android:layout_margin="10dp"
+            android:gravity="center"/>
+        <Button
+            android:text="Close"
+            android:layout_width="130dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:layout_margin="10dp"
+            android:onClick="mOnClose"/>
+    </LinearLayout>
+    <!--// 닫기 버튼 -->
+</LinearLayout>

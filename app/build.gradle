@@ -18,7 +18,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    aaptOptions{
+    aaptOptions {
         noCompress "tflite"
         noCompress "lite"
     }
