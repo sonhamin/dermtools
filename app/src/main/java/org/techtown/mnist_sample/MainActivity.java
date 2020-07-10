@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
     int image_num = 0;
     int crop_num = 0;
+    Preprocessor preprocessor;
     float[][][] bmpOutputs;
     float[][][][] input1;
     float[][][][] input2;
@@ -174,11 +175,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
 
         imageButton = findViewById(R.id.image_select_btn);
-//        imageView = findViewById(R.id.image_view);
         imageView1 = findViewById(R.id.image_1);
         imageView2 = findViewById(R.id.image_2);
         imageView3 = findViewById(R.id.image_3);
-        //cropButton = findViewById(R.id.crop_btn);
         analysisButton = findViewById(R.id.classify_btn);
         addButton = findViewById(R.id.add_btn);
 
@@ -194,7 +193,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     public void onClick(DialogInterface dialog, int which) {
                         switch (which){
                             case 0:
-
                                 break;
                             case 1:
                                 if(image_num<=2){
@@ -220,12 +218,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             public void onClick(View v) {
                 if(croppedBitmap1 != null){
 
-
-
                     int bithw = 304;
                     resizedBitmap = Bitmap.createScaledBitmap(croppedBitmap1, 304, 304, true);
 
-                    Preprocessor preprocessor = new Preprocessor();
+                    preprocessor = new Preprocessor();
                     Bitmap[] combs = preprocessor.decompose(resizedBitmap);
                     croppedBitmap2 = combs[0];
                     croppedBitmap3 = combs[1];
@@ -236,36 +232,40 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     imageView3.setVisibility(View.VISIBLE);
 
 
-                    float [][][][][] combs_input = preprocessor.make_inputs(bithw, resizedBitmap, croppedBitmap2, croppedBitmap3);
+                    float [][][][][] combs_input = preprocessor.make_inputs_unet(bithw, resizedBitmap, croppedBitmap2, croppedBitmap3);
                     input1 = combs_input[0];
                     input2 = combs_input[1];
                     input3 = combs_input[2];
 
+                    init_Unet();
 
 
-                    FirebaseModelManager.getInstance().isModelDownloaded(remoteModel_unet)
-                            .addOnSuccessListener(new OnSuccessListener<Boolean>() {
-                                @Override
-                                public void onSuccess(Boolean isDownloaded) {
-                                    FirebaseModelInterpreterOptions options2;
-                                    if (isDownloaded) {
-                                        options2 = new FirebaseModelInterpreterOptions.Builder(remoteModel_unet).build();
-                                    } else {
-                                        options2 = new FirebaseModelInterpreterOptions.Builder(localModel_unet).build();
-                                    }
-                                    segment_and_classify(input1, input2, input3, options2);
-
-                                }
-                            });
-
-                        /*long startTime = System.currentTimeMillis();
-                        long difference = System.currentTimeMillis() - startTime;
-                        Log.e("DIFFERENCE", "Diff: " + String.valueOf(difference));
-                        Log.e("asdf", "DONE");*/
+                    /*long startTime = System.currentTimeMillis();
+                    long difference = System.currentTimeMillis() - startTime;
+                    Log.e("DIFFERENCE", "Diff: " + String.valueOf(difference));
+                    Log.e("asdf", "DONE");*/
 
 
 
                 }
+            }
+
+            private void init_Unet()
+            {
+                FirebaseModelManager.getInstance().isModelDownloaded(remoteModel_unet)
+                        .addOnSuccessListener(new OnSuccessListener<Boolean>() {
+                            @Override
+                            public void onSuccess(Boolean isDownloaded) {
+                                FirebaseModelInterpreterOptions options2;
+                                if (isDownloaded) {
+                                    options2 = new FirebaseModelInterpreterOptions.Builder(remoteModel_unet).build();
+                                } else {
+                                    options2 = new FirebaseModelInterpreterOptions.Builder(localModel_unet).build();
+                                }
+                                segment_and_classify(input1, input2, input3, options2);
+
+                            }
+                        });
             }
 
 
@@ -273,7 +273,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 try {
 
                     FirebaseModelInterpreter interpreter = FirebaseModelInterpreter.getInstance(options2);
-
                     options_input = new OptionsInput();
                     FirebaseModelInputOutputOptions inputOutputOptions = options_input.getUnetOptions();
                     FirebaseModelInputs inputs = options_input.getUnetInputs(input1, input2, input3);
@@ -306,34 +305,13 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             }
 
             private void init_efficientnet() {
-                int[] unet_result = new int[304 * 304];
-                mask_bitmap.getPixels(unet_result, 0, 304, 0, 0, 304, 304);
-                Mat contour_input = new Mat();
-                Mat contour_input22 = new Mat();
-                Utils.bitmapToMat(mask_bitmap, contour_input);
-
-                Imgproc.cvtColor(contour_input, contour_input22, Imgproc.COLOR_BGR2GRAY);
-                final List<MatOfPoint> contours = new ArrayList<>();
-                Mat hierarchy = new Mat();
-
-                Imgproc.findContours(contour_input22, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_NONE);
-                final Mat orig_img = new Mat();
-                Utils.bitmapToMat(resizedBitmap, orig_img);
-
-                final Bitmap[] bmps = new Bitmap[contours.size()];
-                bmpOutputs = new float[contours.size()][1][18];
-
-
                 FirebaseModelManager.getInstance().isModelDownloaded(remoteModel_effnet)
                         .addOnSuccessListener(new OnSuccessListener<Boolean>() {
                             @Override
                             public void onSuccess(Boolean isDownloaded) {
                                 FirebaseModelInterpreterOptions options2;
-                                if (isDownloaded) {
-                                    options2 = new FirebaseModelInterpreterOptions.Builder(remoteModel_effnet).build();
-                                } else {
-                                    options2 = new FirebaseModelInterpreterOptions.Builder(localModel_effnet).build();
-                                }
+                                if (isDownloaded) {               options2 = new FirebaseModelInterpreterOptions.Builder(remoteModel_effnet).build();                  }
+                                else {                            options2 = new FirebaseModelInterpreterOptions.Builder(localModel_effnet).build();                   }
 
                                 FirebaseModelInterpreter effnet_interpreter = null;
                                 try {
@@ -341,10 +319,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                 } catch (FirebaseMLException e) {
                                     e.printStackTrace();
                                 }
-
                                 FirebaseModelInputOutputOptions inputOutputOptions = options_input.getEffnetOptions();
-
-                                classify(contours, orig_img, bmps, effnet_interpreter, inputOutputOptions);
+                                classify(effnet_interpreter, inputOutputOptions);
                             }
                         });
             }
@@ -355,12 +331,17 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     String res_all = "";
     Mat orig_changed;
     int counter = 0;
-    ArrayList good_nums = new ArrayList();
+    List<MatOfPoint> contours;
+    Bitmap[] bmps;
 
-    private void classify(List<MatOfPoint> contours, Mat orig_img, Bitmap[] bmps, FirebaseModelInterpreter effnet_interpreter, FirebaseModelInputOutputOptions inputOutputOptions) {
+    private void classify(FirebaseModelInterpreter effnet_interpreter, FirebaseModelInputOutputOptions inputOutputOptions) {
 
-        String result = "";
-        orig_changed = orig_img;
+
+        contours = preprocessor.get_contours(mask_bitmap);
+        orig_changed = preprocessor.getResizedMat(resizedBitmap);
+        bmpOutputs = preprocessor.initBmpOutputs(contours);
+        bmps = preprocessor.initBmps(contours);
+
 
         for (int i=0; i<contours.size(); i++) {
 
@@ -368,73 +349,49 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             contour.add(contours.get(i));
 
             Rect rect = Imgproc.boundingRect(contours.get(i));
+            int [] originalDims = preprocessor.getOriginalDims(rect);
 
-            int xx = rect.x;
-            int yy = rect.y;
-            int hh = rect.height;
-            int ww = rect.width;
-
-            if(rect.x >= 10){ rect.x-=10; }
-            if(rect.y >= 10){ rect.y-=10; }
-
-            if(rect.x + rect.width + 20 < orig_img.cols()){ rect.width+=20; }
-            else{rect.width=orig_img.cols()-rect.x;}
-
-            if(rect.y + rect.height + 20 < orig_img.rows()){ rect.height+=20; }
-            else{rect.height=orig_img.rows()-rect.y;}
+            rect = preprocessor.adjustRectangles(rect, orig_changed);
 
             final int x = rect.x;
             final int y = rect.y;
             final int height = rect.height;
             final int width = rect.width;
+
+
             if(height > 25 && width > 25 && height < 250)
             {
-                Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
-                RectangleRange rectangleRange = new RectangleRange(yy, yy+hh, xx, xx+ww);
+
+                Log.e("asdf", "x: " + x + " y: " + y + " height: " + height + " width: " + width);
+                preprocessor.drawContourRects(orig_changed, contour, rect);
+
+                RectangleRange rectangleRange = preprocessor.getRectangleRange(originalDims);
                 ranges.add(rectangleRange);
-                Imgproc.rectangle(orig_img, rect.tl(), rect.br(), new Scalar(255,0,0), 2);
-                try{
-                    ///////////TODO: 1. Crop rectangle from original image
-                    Bitmap originalBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri1);
-                    Mat originImg = new Mat(originalBitmap.getWidth() ,originalBitmap.getHeight(), CvType.CV_8UC4);
-                    Utils.bitmapToMat(originalBitmap, originImg);
-                    Mat subImg = originImg.submat(rect);
-                    Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                    Utils.matToBitmap(subImg, bmp);
-                    imageView3.setImageBitmap(bmp);
-
-                    bmps[i] = Bitmap.createScaledBitmap(bmp, 224, 224, true);
-                    croppedBitmaps.add(bmps[i]);
 
 
+                bmps[i] = preprocessor.crop_segments(getContentResolver(), imageUri1, rect, width, height);
+                croppedBitmaps.add(bmps[i]);
 
 
-                    good_nums.add(i);
+                FirebaseModelInputs inputs = options_input.getEffnetInputs(bmps[i]);
+                effnet_interpreter.run(inputs, inputOutputOptions)
+                        .addOnSuccessListener(
+                                new OnSuccessListener<FirebaseModelOutputs>() {
+                                    @Override
+                                    public void onSuccess(FirebaseModelOutputs result) {
+                                        Point pnt = new Point(x + width/2 - 10, y + height/2 + 10);
+                                        set_output_parameters(result, pnt);
+                                    }
+                                })
+                        .addOnFailureListener(
+                                new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {    e.printStackTrace();     }
+                                });
 
-                    FirebaseModelInputs inputs = options_input.getEffnetInputs(bmps[i]);
-                    effnet_interpreter.run(inputs, inputOutputOptions)
-                            .addOnSuccessListener(
-                                    new OnSuccessListener<FirebaseModelOutputs>() {
-                                        @Override
-                                        public void onSuccess(FirebaseModelOutputs result) {
-
-                                            Point pnt = new Point(x + width/2 - 10, y + height/2 + 10);
-                                            set_output_parameters(result, pnt);
-                                        }
-                                    })
-                            .addOnFailureListener(
-                                    new OnFailureListener() {
-                                        @Override
-                                        public void onFailure(@NonNull Exception e) {    e.printStackTrace();     }
-                                    });
-                } catch (Exception e){
-                    e.printStackTrace();
-                }
 
             }
         }
-
-        Log.e("asdf", "GOOD NUMBERS: " + good_nums.toString());
 
         imageView1.setVisibility(View.INVISIBLE);
         imageView2.setVisibility(View.INVISIBLE);

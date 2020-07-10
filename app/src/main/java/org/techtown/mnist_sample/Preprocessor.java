@@ -1,10 +1,24 @@
 package org.techtown.mnist_sample;
 
+import android.content.ContentResolver;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.net.Uri;
+import android.provider.MediaStore;
+
+import org.opencv.android.Utils;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Preprocessor {
-    int[] coverImageIntArray1D;
     public Preprocessor()
     {
 
@@ -12,7 +26,7 @@ public class Preprocessor {
 
 
     public Bitmap[] decompose(Bitmap croppedBitmap) {
-        coverImageIntArray1D = new int[304 * 304];
+        int[] coverImageIntArray1D = new int[304 * 304];
         Bitmap resizedBitmap = null;
         resizedBitmap = Bitmap.createScaledBitmap(croppedBitmap, 304, 304, true);
 
@@ -134,7 +148,7 @@ public class Preprocessor {
     }
 
 
-    public float[][][][][] make_inputs(int bithw, Bitmap resizedBitmap, Bitmap croppedBitmap2, Bitmap croppedBitmap3)
+    public float[][][][][] make_inputs_unet(int bithw, Bitmap resizedBitmap, Bitmap croppedBitmap2, Bitmap croppedBitmap3)
     {
         int[] coverImageIntArray1D1 = new int[bithw * bithw];
         int[] coverImageIntArray1D2 = new int[bithw * bithw];
@@ -172,6 +186,94 @@ public class Preprocessor {
             }
         }
         return comb_input;
+    }
+
+    public List<MatOfPoint> get_contours(Bitmap mask_bitmap)
+    {
+        int[] unet_result = new int[304 * 304];
+        mask_bitmap.getPixels(unet_result, 0, 304, 0, 0, 304, 304);
+        Mat contour_input = new Mat();
+        Mat contour_input22 = new Mat();
+        Utils.bitmapToMat(mask_bitmap, contour_input);
+
+        Imgproc.cvtColor(contour_input, contour_input22, Imgproc.COLOR_BGR2GRAY);
+        List<MatOfPoint> contours = new ArrayList<>();
+        Mat hierarchy = new Mat();
+
+        Imgproc.findContours(contour_input22, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_NONE);
+
+
+        return contours;
+    }
+
+    public Rect adjustRectangles(Rect rect, Mat orig_img)
+    {
+        if(rect.x >= 10){ rect.x-=10; }
+        if(rect.y >= 10){ rect.y-=10; }
+
+        if(rect.x + rect.width + 20 < orig_img.cols()){ rect.width+=20; }
+        else{rect.width=orig_img.cols()-rect.x;}
+
+        if(rect.y + rect.height + 20 < orig_img.rows()){ rect.height+=20; }
+        else{rect.height=orig_img.rows()-rect.y;}
+
+
+        return rect;
+    }
+
+
+    public Bitmap crop_segments(ContentResolver contentResolver, Uri imageUri1, Rect rect, int width, int height)
+    {
+
+        Bitmap originalBitmap = null;
+        try {
+            originalBitmap = MediaStore.Images.Media.getBitmap(contentResolver, imageUri1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Mat originImg = new Mat(originalBitmap.getWidth() ,originalBitmap.getHeight(), CvType.CV_8UC4);
+        Utils.bitmapToMat(originalBitmap, originImg);
+        Mat subImg = originImg.submat(rect);
+        Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(subImg, bmp);
+
+        Bitmap ret = Bitmap.createScaledBitmap(bmp, 224, 224, true);
+
+        return ret;
+    }
+
+    public int[] getOriginalDims(Rect rect) {
+
+        int [] orig = new int [4];
+        orig[0] = rect.x;
+        orig[1] = rect.y;
+        orig[2] = rect.height;
+        orig[3] = rect.width;
+
+        return orig;
+    }
+
+    public void drawContourRects(Mat orig_img, List<MatOfPoint> contour, Rect rect) {
+        Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
+        Imgproc.rectangle(orig_img, rect.tl(), rect.br(), new Scalar(255,0,0), 2);
+    }
+
+    public RectangleRange getRectangleRange(int[] originalDims) {
+        return new RectangleRange(originalDims[1], originalDims[1]+originalDims[2], originalDims[0], originalDims[0]+originalDims[3]);
+    }
+
+    public Mat getResizedMat(Bitmap resizedBitmap) {
+        Mat orig_img = new Mat();
+        Utils.bitmapToMat(resizedBitmap, orig_img);
+        return orig_img;
+    }
+
+    public float[][][] initBmpOutputs(List<MatOfPoint> contours) {
+        return new float[contours.size()][1][18];
+    }
+
+    public Bitmap[] initBmps(List<MatOfPoint> contours) {
+        return new Bitmap[contours.size()];
     }
 }
 
