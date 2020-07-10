@@ -2,6 +2,8 @@ package org.techtown.mnist_sample;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
@@ -108,8 +110,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     MainActivity mainActivity;
 
     FirebaseStorage storage = FirebaseStorage.getInstance();
+
     // Create a storage reference from our app
     StorageReference storageRef = storage.getReference();
+
     // Create a child reference
     // imagesRef now points to "images"
     StorageReference imagesRef = storageRef.child("images");
@@ -181,38 +185,45 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     }
                 });
 
-
         imageButton = findViewById(R.id.image_select_btn);
-//        imageView = findViewById(R.id.image_view);
         imageView1 = findViewById(R.id.image_1);
         imageView2 = findViewById(R.id.image_2);
         imageView3 = findViewById(R.id.image_3);
-        //cropButton = findViewById(R.id.crop_btn);
         analysisButton = findViewById(R.id.classify_btn);
         addButton = findViewById(R.id.add_btn);
 
         addButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(image_num<=2){
-                    image_num ++;
-                    Intent intent = new Intent(Intent.ACTION_PICK);
-                    intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
-                    startActivityForResult(intent, GET_GALLERY_IMAGE);
-                }else{
-                    Toast.makeText(getApplicationContext(), "no more image", Toast.LENGTH_SHORT).show();
-                }
+                final CharSequence[] items = {"Take Photo", "Choose from Gallery", "Cancel"};
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
+                alertDialogBuilder.setTitle("Add Photo");
+                alertDialogBuilder.setItems(items, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        switch (which){
+                            case 0:
+
+                                break;
+                            case 1:
+                                if(image_num<=2){
+                                    image_num ++;
+                                    Intent intent = new Intent(Intent.ACTION_PICK);
+                                    intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+                                    startActivityForResult(intent, GET_GALLERY_IMAGE);
+                                }else{
+                                    Toast.makeText(getApplicationContext(), "no more image", Toast.LENGTH_SHORT).show();
+                                }
+                                break;
+                        }
+                    }
+                });
+
+                AlertDialog alertDialog = alertDialogBuilder.create();
+                alertDialog.show();
+
             }
         });
-
-        /*cropButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Intent.ACTION_PICK);
-                intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
-                startActivityForResult(intent, EFFICIENT_NET_IMAGE);
-            }
-        });*/
 
         analysisButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -220,7 +231,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 if(croppedBitmap1 != null){
                     int[] bitWidth = new int[3];
                     int[] bitHeight = new int[3];
-
 
                     resizedBitmap = Bitmap.createScaledBitmap(croppedBitmap1, 304, 304, true);
 
@@ -230,14 +240,15 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
                     bitWidth[0] = resizedBitmap.getWidth();
                     bitWidth[1] = resizedBitmap.getWidth();
-
                     bitWidth[2] = croppedBitmap3.getWidth();
                     bitHeight[0] = resizedBitmap.getHeight();
                     bitHeight[1] = croppedBitmap2.getHeight();
                     bitHeight[2] = croppedBitmap3.getHeight();
+
                     int[] coverImageIntArray1D1 = new int[bitWidth[0] * bitHeight[0]];
                     int[] coverImageIntArray1D2 = new int[bitWidth[1] * bitHeight[1]];
                     int[] coverImageIntArray1D3 = new int[bitWidth[2] * bitHeight[2]];
+
                     resizedBitmap.getPixels(coverImageIntArray1D1, 0, bitWidth[0], 0, 0, bitWidth[0], bitHeight[0]);
                     croppedBitmap2.getPixels(coverImageIntArray1D2, 0, bitWidth[1], 0, 0, bitWidth[1], bitHeight[1]);
                     croppedBitmap3.getPixels(coverImageIntArray1D3, 0, bitWidth[2], 0, 0, bitWidth[2], bitHeight[2]);
@@ -247,32 +258,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     imageView3.setImageBitmap(croppedBitmap3);
                     imageView3.setVisibility(View.VISIBLE);
 
-
-
                     final float[][][][] input1 = new float[1][304][304][3];
                     final float[][][][] input2 = new float[1][304][304][3];
                     final float[][][][] input3 = new float[1][304][304][3];
-
-
-                    /*float[][][][][] input = new float[3][1][304][304][3];
-                    Map<Integer, Object> outputs = new HashMap<>();
-
-                    float[][][][] output1 = new float[1][304][304][1];
-                    outputs.put(0,output1);
-
-                    ByteBuffer in1 = ByteBuffer.allocateDirect(3 * 304 * 304 * 3 * 4);
-
-                    ByteBuffer[] in = new ByteBuffer[3];
-                    in[0] = ByteBuffer.allocateDirect(304 * 304 * 3 * 4);
-                    in[0].order(ByteOrder.nativeOrder());
-                    in[1] = ByteBuffer.allocateDirect(304 * 304 * 3 * 4);
-                    in[1].order(ByteOrder.nativeOrder());
-                    in[2] = ByteBuffer.allocateDirect(304 * 304 * 3 * 4);
-                    in[2].order(ByteOrder.nativeOrder());
-
-                    in1.order(ByteOrder.nativeOrder());*/
-
-
 
                     if(bitHeight[0] == 304 && bitWidth[0] == 304 && bitHeight[1] == 304 && bitWidth[1] == 304 && bitHeight[2] == 304 &&bitWidth[2] == 304){
                         for(int i=0;i<304;i++){
@@ -298,17 +286,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                 input3[0][i][j][0] = (float) (R3 / 255.0);
                                 input3[0][i][j][1] = (float) (G3 / 255.0);
                                 input3[0][i][j][2] = (float) (B3 / 255.0);
-
-                                /*in[0].putFloat((float) (R1 / 255.0));
-                                in[0].putFloat((float) (G1 / 255.0));
-                                in[0].putFloat((float) (B1 / 255.0));
-                                in[1].putFloat((float) (R2 / 255.0));
-                                in[1].putFloat((float) (G2 / 255.0));
-                                in[1].putFloat((float) (B2 / 255.0));
-                                in[2].putFloat((float) (R3 / 255.0));
-                                in[2].putFloat((float) (G3 / 255.0));
-                                in[2].putFloat((float) (B3 / 255.0));*/
-
                             }
                         }
 
@@ -327,50 +304,15 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                     }
                                 });
 
-
-
                         long startTime = System.currentTimeMillis();
                         long difference = System.currentTimeMillis() - startTime;
                         Log.e("DIFFERENCE", "Diff: " + String.valueOf(difference));
                         Log.e("asdf", "DONE");
-
-
-
-                        //List<Rect> rect_list = new ArrayList<>();
-                        /*rect_list.add(rect);
-                        Log.e("length", "len: " + rect_list.size());
-
-                        for(int it=0; it<rect_list.size(); it++)
-                        {
-                            if((rect & rect_list.get(it)).area() > 0)
-                            {
-
-                            }
-                        }*/
-
-
-
-
-                        /*File mypath = new File ("/document/raw:/storage/emulated/0/Download/", "masked_img.jpg");
-                        FileOutputStream fos = null;
-                        try{
-                            fos = new FileOutputStream(mypath);
-                            new_bit.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-                            fos.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }*/
-
-
                     } else{
                         Toast.makeText(getApplicationContext(), "image is small", Toast.LENGTH_SHORT).show();
                     }
-
-
                 }
-
             }
-
 
             private void segment_and_classify(float[][][][] input1,float[][][][] input2,float[][][][] input3,FirebaseModelInterpreterOptions options2) {
                 try {
@@ -495,8 +437,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     int counter = 0;
 
     private void classify(List<MatOfPoint> contours, Mat orig_img, Bitmap[] bmps,  FirebaseModelInterpreter effnet_interpreter, FirebaseModelInputOutputOptions inputOutputOptions) {
-
-        String result = "";
         orig_changed = orig_img;
 
         for (int i=0; i<contours.size(); i++) {
@@ -526,9 +466,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             final int width = rect.width;
             if(height > 25 && width > 25 && height < 250)
             {
-
-
-
                 Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
                 RectangleRange rectangleRange = new RectangleRange(yy, yy+hh, xx, xx+ww);
                 ranges.add(rectangleRange);
@@ -547,10 +484,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     croppedBitmaps.add(bmps[i]);
 
                     ///////////TODO: 3. Input resized image into efficient-net
-
-
-
-
                     int[] temp_eff = new int[224*224];
                     bmps[i].getPixels(temp_eff, 0, 224, 0, 0, 224, 224);
                     float [][][][] effin = new float[1][224][224][3];
@@ -564,14 +497,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                             effin[0][a][b][0] = (float) (R1);
                             effin[0][a][b][1] = (float) (G1);
                             effin[0][a][b][2] = (float) (B1);
-
                         }
-
-
                     FirebaseModelInputs inputs = new FirebaseModelInputs.Builder()
                             .add(effin)
                             .build();
-
                     effnet_interpreter.run(inputs, inputOutputOptions)
                             .addOnSuccessListener(
                                     new OnSuccessListener<FirebaseModelOutputs>() {
@@ -579,9 +508,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                         public void onSuccess(FirebaseModelOutputs result) {
                                             float[][] output = result.getOutput(0);
                                             bmpOutputs[counter] = result.getOutput(0);
-
                                             Log.e("adsf", "out: " + outputToString(output) + "  " + output[0][0] + "  " + output[0][5] + "     ");
-
 
                                             Character numb = (char)('A'+counter);
                                             counter++;
@@ -603,9 +530,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                             Log.d("efficientNet", res_all);
 
                                             ImageView imageView = findViewById(R.id.image_view);
-//                        int width = imageView.getLayoutParams().width;
-//                        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(width, width);
-//                        imageView.setLayoutParams(layoutParams);
                                             imageView.setImageBitmap(new_bit);
                                             imageView.setVisibility(View.VISIBLE);
 
@@ -613,9 +537,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                             if(iv!=null){
                                                 iv.setOnTouchListener(mainActivity);
                                             }
-
-
-
                                         }
                                     })
                             .addOnFailureListener(
@@ -623,27 +544,15 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                         @Override
                                         public void onFailure(@NonNull Exception e) {    e.printStackTrace();     }
                                     });
-
-
-
-
-
-
-
                 } catch (Exception e){
                     e.printStackTrace();
                 }
-
             }
         }
-
-
-
         imageView1.setVisibility(View.INVISIBLE);
         imageView2.setVisibility(View.INVISIBLE);
         imageView3.setVisibility(View.INVISIBLE);
     }
-
 
     private void cropImage(Uri photoUri) {
         /**
@@ -706,10 +615,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             if(image_num==1){
                 imageUri1 = data.getData();
                 imageView1.setImageURI(imageUri1);
-//                Cursor cursor = getContentResolver().query(imageUri1, null, null, null, null );
-//                cursor.moveToNext();
-//                filename = cursor.getString( cursor.getColumnIndex( "_data" ) );
-//                cursor.close();
                 imageButton.setVisibility(View.GONE);
                 imageView1.setVisibility(View.VISIBLE);
                 crop_num = 1;
@@ -767,35 +672,20 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
             }
         }
-        /*if (requestCode == EFFICIENT_NET_IMAGE && resultCode == RESULT_OK){
-            Uri enUri = data.getData();
-            try{
-                Bitmap enBitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), enUri);
-                Bitmap enResizeBitmap = Bitmap.createScaledBitmap(enBitmap, 224, 224, true);
-                ImageView imageView = findViewById(R.id.image_view);
-                imageView.setImageBitmap(enResizeBitmap);
-                imageView.setVisibility(View.VISIBLE);
-                imageButton.setVisibility(View.GONE);
-                EfficientNet efficientNet = new EfficientNet(enResizeBitmap, this.getApplicationContext());
-                efficientNet.RunModel();
-                float[][] output = efficientNet.getOutput();
-                if(output != null){
-                    String outputString = new String();
-                    for(int i=0;i<17;i++) {
-                        outputString = outputString + output[0][i] +", ";
-                    }
-                    outputString = outputString + output[0][17];
-                    TextView textView = findViewById(R.id.textView);
-                    textView.setText(outputString);
-                }
-            } catch (Exception e){
-                Log.d("exception", e.toString());
-            }
-        }*/
         if(requestCode==1){
             if(resultCode==RESULT_OK){
-                String result = data.getStringExtra("result");
-                Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+                int result = data.getIntExtra("result", 1);
+                if(result!=1) {
+                    String data1 = data.getStringExtra("data");
+                    String numb = data.getStringExtra("numb");
+                    Bitmap bmp = data.getParcelableExtra("image");
+
+                    Intent intent = new Intent(this, InfoActivity.class);
+                    intent.putExtra("image", bmp);
+                    intent.putExtra("numb", numb);
+                    intent.putExtra("data", data1);
+                    startActivity(intent);
+                }
             }
         }
     }
@@ -956,8 +846,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
         Collections.sort(eo);
 
-
-
         String result = "";
         for(int i=0;i<4;i++){
             float data = eo.get(i).getData();
@@ -993,10 +881,17 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             eo.add(new EfficientOuput(outputNames[i], op[0][i]));
         }
 
-        Collections.sort(eo);
+        String name= outputNames[0];
+        float confidence = op[0][0];
 
-        String name = eo.get(0).getName();
-        Float confidence = eo.get(0).getData()*100;
+        for(int i=1;i<18;i++){
+            if(confidence < op[0][i]){
+                confidence = op[0][i];
+                name = outputNames[i];
+            }
+        }
+
+        confidence *= 100;
 
         String result = "Name: "+name + "\nConfidence: ";
         if(confidence>=1) result = result + String.format("%.0f", confidence);
@@ -1005,9 +900,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
         return result;
     }
-
-
-
 
     public boolean onTouch(View v, MotionEvent ev){
         boolean handledHere = false;
@@ -1039,7 +931,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 }
                 else{
                     Character numb = (char)('A'+inNum);
-                    Toast.makeText(getApplicationContext(), numb+" ", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(this, PopupActivity.class);
                     intent.putExtra("image", croppedBitmaps.get(inNum));
                     intent.putExtra("numb", numb+"");

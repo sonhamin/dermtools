@@ -18,6 +18,9 @@ public class PopupActivity extends Activity {
     ImageView imageView;
     TextView noticeText;
 
+    Bitmap bmp;
+    String data;
+    String numb;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,20 +36,33 @@ public class PopupActivity extends Activity {
 
         //데이터 가져오기
         Intent intent = getIntent();
-        String data = intent.getStringExtra("data");
-        String numb = intent.getStringExtra("numb");
-        Bitmap bitmap = intent.getParcelableExtra("image");
+        data = intent.getStringExtra("data");
+        numb = intent.getStringExtra("numb");
+        bmp = intent.getParcelableExtra("image");
 
         noticeText.setText(numb);
         txtText.setText(data);
-        imageView.setImageBitmap(bitmap);
+        imageView.setImageBitmap(bmp);
     }
 
     //확인 버튼 클릭
     public void mOnClose(View v){
         //데이터 전달하기
         Intent intent = new Intent();
-        intent.putExtra("result", "Close Popup");
+        intent.putExtra("result", 1);
+        setResult(RESULT_OK, intent);
+
+        //액티비티(팝업) 닫기
+        finish();
+    }
+
+    public void mOnMoreInfo(View v){
+        //데이터 전달하기
+        Intent intent = new Intent();
+        intent.putExtra("result", 2);
+        intent.putExtra("image", bmp);
+        intent.putExtra("numb", numb);
+        intent.putExtra("data", data);
         setResult(RESULT_OK, intent);
 
         //액티비티(팝업) 닫기

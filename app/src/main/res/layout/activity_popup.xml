@@ -65,7 +65,8 @@
             android:text="More Info"
             android:id="@+id/mibtn"
             android:layout_margin="10dp"
-            android:gravity="center"/>
+            android:gravity="center"
+            android:onClick="mOnMoreInfo"/>
         <Button
             android:text="Close"
             android:layout_width="130dp"
