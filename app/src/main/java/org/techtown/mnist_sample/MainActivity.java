@@ -144,6 +144,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
         }
 
+        setContentView(R.layout.activity_main);
 
 
         final FirebaseCustomRemoteModel remoteModel_unet =
@@ -164,11 +165,11 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 .requireWifi()
                 .build();
 
-        /*FirebaseModelManager.getInstance().download(remoteModel_unet, conditions)
+        FirebaseModelManager.getInstance().download(remoteModel_unet, conditions)
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
-                        Log.e("asdf", "unet download sucess");
+                        Log.e("asdf", "unet download success");
                     }
                 });
 
@@ -176,13 +177,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
-                        Log.e("asdf", "effnet download sucess");
+                        Log.e("asdf", "effnet download success");
                     }
-                });*/
+                });
 
-
-
-        setContentView(R.layout.activity_main);
 
         imageButton = findViewById(R.id.image_select_btn);
 //        imageView = findViewById(R.id.image_view);
