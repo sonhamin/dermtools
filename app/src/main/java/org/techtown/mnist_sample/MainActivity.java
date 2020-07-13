@@ -79,21 +79,20 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
     private final int GET_GALLERY_IMAGE = 200;
 
-    int image_num = 0;
-    int crop_num = 0;
     Preprocessor preprocessor;
     float[][][] bmpOutputs;
     float[][][][] input1;
     float[][][][] input2;
     float[][][][] input3;
-    Uri imageUri1, imageUri2, imageUri3;
-    Uri cropUri1, cropUri2, cropUri3;
+
+    Uri imageUri;
+    Uri cropUri;
 
     Bitmap mask_bitmap;
     Bitmap resizedBitmap;
 
     Bitmap croppedBitmap1 = null, croppedBitmap2 = null, croppedBitmap3 = null;
-    File croppedFile1, croppedFile2, croppedFile3;
+    File croppedFile;
 
     ArrayList<Bitmap> croppedBitmaps = new ArrayList<>();
     MainActivity mainActivity;
@@ -195,15 +194,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                             case 0:
                                 break;
                             case 1:
-                                if(image_num<=2){
-                                    image_num ++;
-                                    Intent intent = new Intent(Intent.ACTION_PICK);
-                                    intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
-                                    startActivityForResult(intent, GET_GALLERY_IMAGE);
-                                }else{
-                                    Toast.makeText(getApplicationContext(), "no more image", Toast.LENGTH_SHORT).show();
-                                }
-                                break;
+                                Intent intent = new Intent(Intent.ACTION_PICK);
+                                intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+                                startActivityForResult(intent, GET_GALLERY_IMAGE);
                         }
                     }
                 });
@@ -238,15 +231,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     input3 = combs_input[2];
 
                     init_Unet();
-
-
-                    /*long startTime = System.currentTimeMillis();
-                    long difference = System.currentTimeMillis() - startTime;
-                    Log.e("DIFFERENCE", "Diff: " + String.valueOf(difference));
-                    Log.e("asdf", "DONE");*/
-
-
-
                 }
             }
 
@@ -335,8 +319,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     Bitmap[] bmps;
 
     private void classify(FirebaseModelInterpreter effnet_interpreter, FirebaseModelInputOutputOptions inputOutputOptions) {
-
-
         contours = preprocessor.get_contours(mask_bitmap);
         orig_changed = preprocessor.getResizedMat(resizedBitmap);
         bmpOutputs = preprocessor.initBmpOutputs(contours);
@@ -369,7 +351,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 ranges.add(rectangleRange);
 
 
-                bmps[i] = preprocessor.crop_segments(getContentResolver(), imageUri1, rect, width, height);
+                bmps[i] = preprocessor.crop_segments(getContentResolver(), imageUri, rect, width, height);
                 croppedBitmaps.add(bmps[i]);
 
 
@@ -402,9 +384,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     {
         bmpOutputs[counter] = result.getOutput(0);
 
-
         Character numb = (char)('A'+counter);
-        String a = outputToString(bmpOutputs[counter]);
+        EfficientOuput efficientOuput = new EfficientOuput();
+        String a = efficientOuput.outputToString(bmpOutputs[counter]);
 
         res_all = res_all + numb + ": "+a + "\n";
         String text = "" + numb;
@@ -439,39 +421,15 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
          *  갤러리에서 선택한 경우에는 tempFile 이 없으므로 새로 생성해줍니다.
          */
         try {
-            switch (crop_num){
-                case 1:
-                    croppedFile1 = createImageFile();
-                    break;
-                case 2:
-                    croppedFile2 = createImageFile();
-                    break;
-                case 3:
-                    croppedFile3 = createImageFile();
-                    break;
-            }
+            croppedFile = createImageFile();
         } catch (IOException e) {
             Toast.makeText(this, "이미지 처리 오류! 다시 시도해주세요.", Toast.LENGTH_SHORT).show();
             finish();
             e.printStackTrace();
         }
-
         //크롭 후 저장할 Uri
-        switch (crop_num){
-            case 1:
-                cropUri1 = Uri.fromFile(croppedFile1);
-                Crop.of(photoUri, cropUri1).withMaxSize(304, 304).start(this);
-                break;
-            case 2:
-                cropUri2 = Uri.fromFile(croppedFile2);
-                Crop.of(photoUri, cropUri2).withMaxSize(304, 304).start(this);
-                break;
-            case 3:
-                cropUri3 = Uri.fromFile(croppedFile3);
-                Crop.of(photoUri, cropUri3).withMaxSize(304, 304).start(this);
-                break;
-        }
-//        Crop.of(photoUri, savingUri).withAspect(304, 304).start(this);
+        cropUri = Uri.fromFile(croppedFile);
+        Crop.of(photoUri, cropUri).withMaxSize(304, 304).start(this);
     }
 
     private File createImageFile() throws IOException {
@@ -492,68 +450,21 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == GET_GALLERY_IMAGE && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            if(image_num==1){
-                imageUri1 = data.getData();
-                imageView1.setImageURI(imageUri1);
-//                Cursor cursor = getContentResolver().query(imageUri1, null, null, null, null );
-//                cursor.moveToNext();
-//                filename = cursor.getString( cursor.getColumnIndex( "_data" ) );
-//                cursor.close();
-                imageButton.setVisibility(View.GONE);
-                imageView1.setVisibility(View.VISIBLE);
-                crop_num = 1;
-                cropImage(imageUri1);
-            }
-            else if(image_num==2){
-                imageUri2 = data.getData();
-                imageView2.setImageURI(imageUri2);
-                imageView2.setVisibility(View.VISIBLE);
-                crop_num = 2;
-                cropImage(imageUri2);
-            }
-            else if(image_num==3){
-                imageUri3 = data.getData();
-                imageView3.setImageURI(imageUri3);
-                imageView3.setVisibility(View.VISIBLE);
-                crop_num = 3;
-                cropImage(imageUri3);
-            }
+            imageUri = data.getData();
+            imageView1.setImageURI(imageUri);
+            imageButton.setVisibility(View.GONE);
+            imageView1.setVisibility(View.VISIBLE);
+            cropImage(imageUri);
         }
         if (requestCode == Crop.REQUEST_CROP && resultCode == RESULT_OK) {
-            Log.e("asdfasdf", "22HERE WITH: " + crop_num);
-            switch (crop_num){
-                case 1:
-                    imageView1.setImageURI(cropUri1);
-                    Log.d("imageString", cropUri1.toString());
-                    break;
-                case 2:
-                    imageView2.setImageURI(cropUri2);
-                    Log.d("imageString", cropUri2.toString());
-                    break;
-                case 3:
-                    imageView3.setImageURI(cropUri3);
-                    Log.d("imageString", cropUri3.toString());
-                    break;
-            }
+            Log.e("asdfasdf", "22HERE WITH: ");
+            imageView1.setImageURI(cropUri);
+            Log.d("imageString", cropUri.toString());
             try{
-                switch (crop_num){
-                    case 1:
-                        croppedBitmap1 = MediaStore.Images.Media.getBitmap(getContentResolver(), cropUri1);
-                        uploadImage(croppedBitmap1, "img1");
-                        break;
-                    case 2:
-                        croppedBitmap2 = MediaStore.Images.Media.getBitmap(getContentResolver(), cropUri2);
-                        uploadImage(croppedBitmap2, "img2");
-                        break;
-                    case 3:
-                        croppedBitmap3 = MediaStore.Images.Media.getBitmap(getContentResolver(), cropUri3);
-                        uploadImage(croppedBitmap3, "img3");
-                        break;
-
-                }
+                croppedBitmap1 = MediaStore.Images.Media.getBitmap(getContentResolver(), cropUri);
+                uploadImage(croppedBitmap1, "img1");
             } catch (Exception e){
                 Log.e("except", String.valueOf(e));
-
             }
         }
 
@@ -595,80 +506,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         });
     }
 
-    String outputToString(float[][] op){
-        ArrayList<EfficientOuput> eo = new ArrayList<>();
-
-        String[] outputNames = {"Acne", "Actinic", "Atopic", "Bullous", "Cellulitis", "Eczema", "Exanthems", "Herpes",
-                "Hives", "Light Disease", "Lupus", "Contact Dermititis", "Psoriasis", "Scabies",
-                "Systemic", "Tinea", "Vasculitis", "Warts"};
-
-
-        for(int i=0;i<18;i++){
-            eo.add(new EfficientOuput(outputNames[i], op[0][i]));
-        }
-
-        Collections.sort(eo);
-
-
-
-        String result = "";
-        for(int i=0;i<4;i++){
-            float data = eo.get(i).getData();
-            data = data*100;
-            String strData = new String();
-            if(data>=1) strData = String.format("%.0f", data);
-            else if(data>=0.1) strData = String.format("%.1f", data);
-            else if(data>=0.01) strData = String.format("%.2f", data);
-            else strData = String.format("%.3f", data);
-            result = result + eo.get(i).getName() + ": " +strData+"%, ";
-        }
-        float data = eo.get(4).getData();
-        data = data*100;
-        String strData = new String();
-        if(data>=1) strData = String.format("%.0f", data);
-        else if(data>=0.1) strData = String.format("%.1f", data);
-        else if(data>=0.01) strData = String.format("%.2f", data);
-        else strData = String.format("%.3f", data);
-        result = result + eo.get(4).getName() + ": " +strData+"%";
-
-        return result;
-    }
-
-    String outputToData(float[][] op){
-        ArrayList<EfficientOuput> eo = new ArrayList<>();
-
-        String[] outputNames = {"Acne", "Actinic", "Atopic", "Bullous", "Cellulitis", "Eczema", "Exanthems", "Herpes",
-                "Hives", "Light Disease", "Lupus", "Contact Dermititis", "Psoriasis", "Scabies",
-                "Systemic", "Tinea", "Vasculitis", "Warts"};
-
-
-        for(int i=0;i<18;i++){
-            eo.add(new EfficientOuput(outputNames[i], op[0][i]));
-        }
-
-        String name= outputNames[0];
-        float confidence = op[0][0];
-
-        for(int i=1;i<18;i++){
-            if(confidence < op[0][i]){
-                confidence = op[0][i];
-                name = outputNames[i];
-            }
-        }
-
-        confidence *= 100;
-
-        String result = "Name: "+name + "\nConfidence: ";
-        if(confidence>=1) result = result + String.format("%.0f", confidence);
-        else if(confidence>=0.1) result = result + String.format("%.1f", confidence);
-        else result = result + String.format("%.2f", confidence);
-
-        return result;
-    }
-
-
-
-
     public boolean onTouch(View v, MotionEvent ev){
         boolean handledHere = false;
 
@@ -699,17 +536,16 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 }
                 else{
                     Character numb = (char)('A'+inNum);
+                    EfficientOuput efficientOuput = new EfficientOuput();
                     Toast.makeText(getApplicationContext(), numb+" ", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(this, PopupActivity.class);
                     intent.putExtra("image", croppedBitmaps.get(inNum));
                     intent.putExtra("numb", numb+"");
-                    intent.putExtra("data", outputToData(bmpOutputs[inNum]));
+                    intent.putExtra("data", efficientOuput.outputToData(bmpOutputs[inNum]));
                     startActivityForResult(intent, 1);
                 }
                 break;
         }
         return true;
     }
-
-
 }

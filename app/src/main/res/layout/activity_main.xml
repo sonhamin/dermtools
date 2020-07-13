@@ -78,7 +78,7 @@
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="50dp"
-                android:text="add"
+                android:text="select photo"
                 android:textSize="30px"
                 android:layout_marginRight="20dp"
                 android:id="@+id/add_btn"/>
