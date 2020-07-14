@@ -188,6 +188,9 @@ public class Preprocessor {
         return comb_input;
     }
 
+
+
+
     public List<MatOfPoint> get_contours(Bitmap mask_bitmap)
     {
         int[] unet_result = new int[304 * 304];
@@ -211,7 +214,7 @@ public class Preprocessor {
         if(rect.x >= 10){ rect.x-=10; }
         if(rect.y >= 10){ rect.y-=10; }
 
-        if(rect.x + rect.width + 20 < orig_img.cols()){ rect.width+=20; }
+        if(rect.x + rect.width + 20 < orig_img.cols()) { rect.width+=20; }
         else{rect.width=orig_img.cols()-rect.x;}
 
         if(rect.y + rect.height + 20 < orig_img.rows()){ rect.height+=20; }
@@ -274,6 +277,38 @@ public class Preprocessor {
 
     public Bitmap[] initBmps(List<MatOfPoint> contours) {
         return new Bitmap[contours.size()];
+    }
+
+    public Bitmap maskBitmap(float[][][][] output2) {
+        Bitmap mask_bitmap = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
+
+        for(int i=0;i<304;i++){
+            for(int j=0;j<304;j++){
+                if(output2[0][i][j][0]>=0.10){          mask_bitmap.setPixel(j, i, Color.WHITE);           }
+                else                         {          mask_bitmap.setPixel(j, i, Color.BLACK);           }
+            }
+        }
+        return mask_bitmap;
+    }
+
+    public float[][][][] make_inputs_effnet(Bitmap bmp) {
+        int[] temp_eff = new int[224*224];
+        bmp.getPixels(temp_eff, 0, 224, 0, 0, 224, 224);
+        float [][][][] effin = new float[1][224][224][3];
+        for(int a=0; a<224; a++)
+            for(int b=0; b<224; b++)
+            {
+                int rgb1 = temp_eff[a*224+b];
+                int R1 = Color.red(rgb1);
+                int G1 = Color.green(rgb1);
+                int B1 = Color.blue(rgb1);
+                effin[0][a][b][0] = (float) (R1);
+                effin[0][a][b][1] = (float) (G1);
+                effin[0][a][b][2] = (float) (B1);
+
+            }
+
+        return effin;
     }
 }
 

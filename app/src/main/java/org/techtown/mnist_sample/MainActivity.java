@@ -18,8 +18,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.ml.common.FirebaseMLException;
 import com.google.firebase.ml.common.modeldownload.FirebaseModelDownloadConditions;
 import com.google.firebase.ml.common.modeldownload.FirebaseModelManager;
@@ -71,10 +73,11 @@ import android.content.DialogInterface;
 public class MainActivity extends AppCompatActivity implements View.OnTouchListener{
 
     ImageButton imageButton;
-    ImageView imageView1, imageView2, imageView3;
+    ImageView imageView1, imageView2, imageView3, imageView;
     ImageView iv;
     Button analysisButton, addButton;
-
+    TextView textView;
+    int counter;
     ArrayList<RectangleRange> ranges = new ArrayList<>();
 
     private final int GET_GALLERY_IMAGE = 200;
@@ -156,7 +159,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 .requireWifi()
                 .build();
 
-        /*FirebaseModelManager.getInstance().download(remoteModel_unet, conditions)
+        FirebaseModelManager.getInstance().download(remoteModel_unet, conditions)
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
@@ -170,19 +173,24 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     public void onComplete(@NonNull Task<Void> task) {
                         Log.e("asdf", "effnet download success");
                     }
-                });*/
+                });
 
 
         imageButton = findViewById(R.id.image_select_btn);
         imageView1 = findViewById(R.id.image_1);
         imageView2 = findViewById(R.id.image_2);
         imageView3 = findViewById(R.id.image_3);
+        imageView = findViewById(R.id.image_view);
         analysisButton = findViewById(R.id.classify_btn);
         addButton = findViewById(R.id.add_btn);
+        textView = findViewById(R.id.textView);
+
 
         addButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+
 
                 final CharSequence[] items = {"Take Photo", "Choose from Gallery", "Cancel"};
                 AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
@@ -194,6 +202,14 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                             case 0:
                                 break;
                             case 1:
+
+                                //Clear previous inputs
+                                counter=0;
+                                imageView.setImageDrawable(null);
+                                textView.setText("");
+                                res_all="";
+                                //~Clear previous inputs
+
                                 Intent intent = new Intent(Intent.ACTION_PICK);
                                 intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
                                 startActivityForResult(intent, GET_GALLERY_IMAGE);
@@ -268,13 +284,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                         public void onSuccess(FirebaseModelOutputs result) {
                                             Log.e("asdf", "done masking");
                                             float[][][][] output2 = result.getOutput(0);
-                                            mask_bitmap = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
-                                            for(int i=0;i<304;i++){
-                                                for(int j=0;j<304;j++){
-                                                    if(output2[0][i][j][0]>=0.10){          mask_bitmap.setPixel(j, i, Color.WHITE);           }
-                                                    else                         {          mask_bitmap.setPixel(j, i, Color.BLACK);           }
-                                                }
-                                            }
+                                            mask_bitmap = preprocessor.maskBitmap(output2);
+
                                             imageView3.setImageBitmap(mask_bitmap);
                                             init_efficientnet();
                                         }
@@ -314,7 +325,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
     String res_all = "";
     Mat orig_changed;
-    int counter = 0;
+
     List<MatOfPoint> contours;
     Bitmap[] bmps;
 
@@ -332,7 +343,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
             Rect rect = Imgproc.boundingRect(contours.get(i));
             int [] originalDims = preprocessor.getOriginalDims(rect);
-
             rect = preprocessor.adjustRectangles(rect, orig_changed);
 
             final int x = rect.x;
@@ -354,8 +364,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 bmps[i] = preprocessor.crop_segments(getContentResolver(), imageUri, rect, width, height);
                 croppedBitmaps.add(bmps[i]);
 
-
-                FirebaseModelInputs inputs = options_input.getEffnetInputs(bmps[i]);
+                float [][][][] effnet_input = preprocessor.make_inputs_effnet(bmps[i]);
+                FirebaseModelInputs inputs = options_input.getEffnetInputs(effnet_input);
                 effnet_interpreter.run(inputs, inputOutputOptions)
                         .addOnSuccessListener(
                                 new OnSuccessListener<FirebaseModelOutputs>() {
@@ -370,8 +380,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                     @Override
                                     public void onFailure(@NonNull Exception e) {    e.printStackTrace();     }
                                 });
-
-
             }
         }
 
@@ -400,11 +408,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
 
         imageView2.setImageBitmap(new_bit);
-        TextView textView = findViewById(R.id.textView);
         textView.setText(res_all);
         Log.d("efficientNet", res_all);
 
-        ImageView imageView = findViewById(R.id.image_view);
+
         imageView.setImageBitmap(new_bit);
         imageView.setVisibility(View.VISIBLE);
 
