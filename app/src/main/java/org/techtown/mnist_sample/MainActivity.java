@@ -4,7 +4,10 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -56,17 +59,22 @@ import org.techtown.mnist_sample.RectangleRange;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 
@@ -81,6 +89,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     ArrayList<RectangleRange> ranges = new ArrayList<>();
 
     private final int GET_GALLERY_IMAGE = 200;
+    private final int GET_CAMERA_IMAGE = 101;
+    private static final int REQUEST_IMAGE_CAPTURE = 672;
 
     Preprocessor preprocessor;
     float[][][] bmpOutputs;
@@ -90,6 +100,11 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
     Uri imageUri;
     Uri cropUri;
+    Uri cameraUri;
+    String cameraFilePath;
+    private MediaScanner mMediaScanner;
+
+    File file;
 
     Bitmap mask_bitmap;
     Bitmap resizedBitmap;
@@ -99,6 +114,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
     ArrayList<Bitmap> croppedBitmaps = new ArrayList<>();
     MainActivity mainActivity;
+
+    FileManager fileManager;
 
     FirebaseStorage storage = FirebaseStorage.getInstance();
     // Create a storage reference from our app
@@ -122,11 +139,13 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         mainActivity = this;
+        fileManager = new FileManager(getApplication());
 
         // 화면 켜진 상태를 유지합니다.
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        mMediaScanner = MediaScanner.getInstance(getApplicationContext());
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
@@ -189,17 +208,17 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         addButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-
-
                 final CharSequence[] items = {"Take Photo", "Choose from Gallery", "Cancel"};
                 AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
                 alertDialogBuilder.setTitle("Add Photo");
                 alertDialogBuilder.setItems(items, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+                        Intent intent;
                         switch (which){
                             case 0:
+                                camera();
+//                                intent = new Intent(mainActivity, CameraActivity.class);
                                 break;
                             case 1:
 
@@ -210,9 +229,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                 res_all="";
                                 //~Clear previous inputs
 
-                                Intent intent = new Intent(Intent.ACTION_PICK);
+                                intent = new Intent(Intent.ACTION_PICK);
                                 intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
                                 startActivityForResult(intent, GET_GALLERY_IMAGE);
+                                break;
                         }
                     }
                 });
@@ -250,8 +270,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 }
             }
 
-            private void init_Unet()
-            {
+            private void init_Unet() {
                 FirebaseModelManager.getInstance().isModelDownloaded(remoteModel_unet)
                         .addOnSuccessListener(new OnSuccessListener<Boolean>() {
                             @Override
@@ -263,11 +282,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                     options2 = new FirebaseModelInterpreterOptions.Builder(localModel_unet).build();
                                 }
                                 segment_and_classify(input1, input2, input3, options2);
-
                             }
                         });
             }
-
 
             private void segment_and_classify(float[][][][] input1,float[][][][] input2,float[][][][] input3,FirebaseModelInterpreterOptions options2) {
                 try {
@@ -320,7 +337,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                         });
             }
         });
-
     }
 
     String res_all = "";
@@ -388,8 +404,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         imageView3.setVisibility(View.INVISIBLE);
     }
 
-    private void set_output_parameters(FirebaseModelOutputs result, Point pnt)
-    {
+    private void set_output_parameters(FirebaseModelOutputs result, Point pnt) {
         bmpOutputs[counter] = result.getOutput(0);
 
         Character numb = (char)('A'+counter);
@@ -428,7 +443,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
          *  갤러리에서 선택한 경우에는 tempFile 이 없으므로 새로 생성해줍니다.
          */
         try {
-            croppedFile = createImageFile();
+            croppedFile = fileManager.createImageFile("croppedFile");
         } catch (IOException e) {
             Toast.makeText(this, "이미지 처리 오류! 다시 시도해주세요.", Toast.LENGTH_SHORT).show();
             finish();
@@ -437,21 +452,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         //크롭 후 저장할 Uri
         cropUri = Uri.fromFile(croppedFile);
         Crop.of(photoUri, cropUri).withMaxSize(304, 304).start(this);
-    }
-
-    private File createImageFile() throws IOException {
-        String timeStamp = new SimpleDateFormat("HHmmss").format(new Date());
-        String imageFileName = "croppedImage" + timeStamp + "_";
-
-        File storageDir = new File(getFilesDir()+ "/sample_folder/");
-        if (!storageDir.exists())
-            try{
-                storageDir.mkdirs();
-            } catch (Exception e){
-            }
-        // 빈 파일 생성
-        File image = File.createTempFile(imageFileName, ".jpg", storageDir);
-        return image;
     }
 
     @Override
@@ -463,19 +463,26 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             imageView1.setVisibility(View.VISIBLE);
             cropImage(imageUri);
         }
+        if (requestCode == GET_CAMERA_IMAGE && resultCode == RESULT_OK){
+//            Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+            imageUri = Uri.fromFile(file);
+            imageView1.setImageURI(imageUri);
+            imageButton.setVisibility(View.GONE);
+            imageView1.setVisibility(View.VISIBLE);
+            cropImage(imageUri);
+        }
         if (requestCode == Crop.REQUEST_CROP && resultCode == RESULT_OK) {
             Log.e("asdfasdf", "22HERE WITH: ");
             imageView1.setImageURI(cropUri);
             Log.d("imageString", cropUri.toString());
             try{
                 croppedBitmap1 = MediaStore.Images.Media.getBitmap(getContentResolver(), cropUri);
-                uploadImage(croppedBitmap1, "img1");
+                fileManager.uploadImage(croppedBitmap1, "img1");
             } catch (Exception e){
                 Log.e("except", String.valueOf(e));
             }
         }
-
-        if(requestCode==1){
+        if (requestCode==1){
             if(resultCode==RESULT_OK){
                 int result = data.getIntExtra("result", 1);
                 if(result!=1) {
@@ -491,26 +498,91 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 }
             }
         }
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK){
+            Bitmap bitmap = BitmapFactory.decodeFile(cameraFilePath);
+//            ExifInterface exif = null;
+//
+//            try{
+//                exif = new ExifInterface(cameraFilePath);
+//            } catch (IOException e){
+//                e.printStackTrace();
+//            }
+//
+//            int exifOrientation;
+//            int exifDegree;
+//
+//            if(exif != null){
+//                exifOrientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+//                exifDegree = exifOrientationToDegress(exifOrientation);
+//            } else{
+//                exifDegree = 0;
+//            }
+//
+//            String result = "";
+//            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HHmmss", Locale.getDefault());
+//            Date             curDate   = new Date(System.currentTimeMillis());
+//            String           filename  = formatter.format(curDate);
+//
+//            String          strFolderName = getApplication().getFilesDir().getPath();
+//            File file = new File(strFolderName);
+//            if( !file.exists() )
+//                file.mkdirs();
+//
+//            File f = new File(strFolderName + "/" + filename + ".png");
+//            result = f.getPath();
+//
+//
+//            FileOutputStream fOut = null;
+//            try {
+//                fOut = new FileOutputStream(f);
+//            } catch (FileNotFoundException e) {
+//                e.printStackTrace();
+//                result = "Save Error fOut";
+//            }
+//
+//            if(fOut == null){
+//                Log.d("asdasdasd", "fout null");
+//            }
+
+//            // 비트맵 사진 폴더 경로에 저장
+//            rotate(bitmap,exifDegree).compress(Bitmap.CompressFormat.PNG, 70, fOut);
+//
+//            try {
+//                fOut.flush();
+//            } catch (IOException e) {
+//                Log.d("asdfasdf", e.toString());
+//                e.printStackTrace();
+//            }
+//            try {
+//                fOut.close();
+//                // 방금 저장된 사진을 갤러리 폴더 반영 및 최신화
+//                mMediaScanner.mediaScanning(strFolderName + "/" + filename + ".png");
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                Log.d("asdfasdf", e.toString());
+//                result = "File close Error";
+//            }
+
+            imageView1.setImageBitmap(bitmap);
+            imageView1.setVisibility(View.VISIBLE);
+        }
     }
 
-    void uploadImage(Bitmap bitmap, String filename){
-        StorageReference imageRef = storageRef.child("images/"+filename +".jpg");
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
-        byte[] data = baos.toByteArray();
+    private int exifOrientationToDegress(int exifOrientation) {
+        if (exifOrientation == ExifInterface.ORIENTATION_ROTATE_90) {
+            return 90;
+        } else if (exifOrientation == ExifInterface.ORIENTATION_ROTATE_180) {
+            return 180;
+        } else if (exifOrientation == ExifInterface.ORIENTATION_ROTATE_270) {
+            return 270;
+        }
+        return 0;
+    }
 
-        UploadTask uploadTask = imageRef.putBytes(data);
-        uploadTask.addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                // Handle unsuccessful uploads
-            }
-        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-            @Override
-            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
-            }
-        });
+    private Bitmap rotate(Bitmap bitmap, float degree) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(degree);
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
     public boolean onTouch(View v, MotionEvent ev){
@@ -554,5 +626,23 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 break;
         }
         return true;
+    }
+
+    public void camera(){
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if(intent.resolveActivity(getPackageManager()) != null){
+            File cameraFile = null;
+            try{
+                cameraFile = fileManager.createImageFile2();
+                cameraFilePath = cameraFile.getAbsolutePath();
+            } catch(IOException e){
+
+            }
+            if(cameraFile != null){
+                cameraUri = FileProvider.getUriForFile(getApplicationContext(), getPackageName(), cameraFile);
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraUri);
+                startActivityForResult(intent, REQUEST_IMAGE_CAPTURE);
+            }
+        }
     }
 }
