@@ -500,71 +500,29 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         }
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK){
             Bitmap bitmap = BitmapFactory.decodeFile(cameraFilePath);
-//            ExifInterface exif = null;
-//
-//            try{
-//                exif = new ExifInterface(cameraFilePath);
-//            } catch (IOException e){
-//                e.printStackTrace();
-//            }
-//
-//            int exifOrientation;
-//            int exifDegree;
-//
-//            if(exif != null){
-//                exifOrientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-//                exifDegree = exifOrientationToDegress(exifOrientation);
-//            } else{
-//                exifDegree = 0;
-//            }
-//
-//            String result = "";
-//            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HHmmss", Locale.getDefault());
-//            Date             curDate   = new Date(System.currentTimeMillis());
-//            String           filename  = formatter.format(curDate);
-//
-//            String          strFolderName = getApplication().getFilesDir().getPath();
-//            File file = new File(strFolderName);
-//            if( !file.exists() )
-//                file.mkdirs();
-//
-//            File f = new File(strFolderName + "/" + filename + ".png");
-//            result = f.getPath();
-//
-//
-//            FileOutputStream fOut = null;
-//            try {
-//                fOut = new FileOutputStream(f);
-//            } catch (FileNotFoundException e) {
-//                e.printStackTrace();
-//                result = "Save Error fOut";
-//            }
-//
-//            if(fOut == null){
-//                Log.d("asdasdasd", "fout null");
-//            }
+            ExifInterface exif = null;
 
-//            // 비트맵 사진 폴더 경로에 저장
-//            rotate(bitmap,exifDegree).compress(Bitmap.CompressFormat.PNG, 70, fOut);
-//
-//            try {
-//                fOut.flush();
-//            } catch (IOException e) {
-//                Log.d("asdfasdf", e.toString());
-//                e.printStackTrace();
-//            }
-//            try {
-//                fOut.close();
-//                // 방금 저장된 사진을 갤러리 폴더 반영 및 최신화
-//                mMediaScanner.mediaScanning(strFolderName + "/" + filename + ".png");
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//                Log.d("asdfasdf", e.toString());
-//                result = "File close Error";
-//            }
+            try{
+                exif = new ExifInterface(cameraFilePath);
+            } catch (IOException e){
+                e.printStackTrace();
+            }
 
-            imageView1.setImageBitmap(bitmap);
+            int exifOrientation;
+            int exifDegree;
+
+            if(exif != null){
+                exifOrientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+                exifDegree = exifOrientationToDegress(exifOrientation);
+            } else{
+                exifDegree = 0;
+            }
+
+            imageView1.setImageBitmap(rotate(bitmap,exifDegree));
             imageView1.setVisibility(View.VISIBLE);
+            imageButton.setVisibility(View.GONE);
+            imageUri = fileManager.getImageUri(getApplicationContext(), rotate(bitmap,exifDegree));
+            cropImage(imageUri);
         }
     }
 
@@ -616,7 +574,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 else{
                     Character numb = (char)('A'+inNum);
                     EfficientOuput efficientOuput = new EfficientOuput();
-                    Toast.makeText(getApplicationContext(), numb+" ", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(this, PopupActivity.class);
                     intent.putExtra("image", croppedBitmaps.get(inNum));
                     intent.putExtra("numb", numb+"");

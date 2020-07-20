@@ -1,8 +1,11 @@
 package org.techtown.mnist_sample;
 
 import android.app.Application;
+import android.content.Context;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Environment;
+import android.provider.MediaStore;
 
 import androidx.annotation.NonNull;
 
@@ -78,5 +81,12 @@ public class FileManager {
                 // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
             }
         });
+    }
+
+    public Uri getImageUri(Context inContext, Bitmap inImage) {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        inImage.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
+        String path = MediaStore.Images.Media.insertImage(inContext.getContentResolver(), inImage, "Title", null);
+        return Uri.parse(path);
     }
 }
