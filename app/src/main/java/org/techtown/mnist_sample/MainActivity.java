@@ -25,6 +25,8 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.ml.common.FirebaseMLException;
 import com.google.firebase.ml.common.modeldownload.FirebaseModelDownloadConditions;
 import com.google.firebase.ml.common.modeldownload.FirebaseModelManager;
@@ -124,6 +126,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     // Create a child reference
     // imagesRef now points to "images"
     StorageReference imagesRef = storageRef.child("images");
+    private DatabaseReference mDatabase;
     static {
         if (!OpenCVLoader.initDebug()) {
             // Handle initialization error
@@ -146,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         mMediaScanner = MediaScanner.getInstance(getApplicationContext());
-
+        mDatabase = FirebaseDatabase.getInstance().getReference();
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
         }
@@ -402,6 +405,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         imageView1.setVisibility(View.INVISIBLE);
         imageView2.setVisibility(View.INVISIBLE);
         imageView3.setVisibility(View.INVISIBLE);
+
+        update_firebase();
     }
 
     private void set_output_parameters(FirebaseModelOutputs result, Point pnt) {
@@ -438,6 +443,35 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         counter++;
     }
 
+    private void update_firebase(){
+        Date dt = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd, hh:mm:ss a");
+        String time = sdf.format(dt).toString();
+        OriginalInfo originalInfo = new OriginalInfo();
+        mDatabase.updateChildren(originalInfo.postInfo("user", time));
+        fileManager.uploadImageOrigin(croppedBitmap1, "original", "user", time);
+        for(int i=0;i<croppedBitmaps.size();i++){
+            double area = croppedBitmaps.get(i).getWidth() * croppedBitmaps.get(i).getHeight();
+            int[] pixels = new int[(int)area];
+            croppedBitmaps.get(i).getPixels(pixels, 0, croppedBitmaps.get(i).getWidth(), 0, 0, croppedBitmaps.get(i).getWidth(), croppedBitmaps.get(i).getHeight());
+            double R = 0;
+            double G = 0;
+            double B = 0;
+            for(int j=0;j<(int)area;j++){
+                R += Color.red(pixels[j]);
+                G += Color.green(pixels[j]);
+                B += Color.blue(pixels[j]);
+            }
+            R /= area;
+            G /= area;
+            B /= area;
+            CropInfo cropInfo = new CropInfo(area, R, G, B);
+            String parameter = (char)('A'+i)+"";
+            mDatabase.updateChildren(cropInfo.postInfo("user", time, parameter));
+            fileManager.uploadImageOrigin(croppedBitmaps.get(i), parameter, "user", time);
+        }
+
+    }
     private void cropImage(Uri photoUri) {
         /**
          *  갤러리에서 선택한 경우에는 tempFile 이 없으므로 새로 생성해줍니다.
@@ -481,6 +515,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             } catch (Exception e){
                 Log.e("except", String.valueOf(e));
             }
+
+
         }
         if (requestCode==1){
             if(resultCode==RESULT_OK){
