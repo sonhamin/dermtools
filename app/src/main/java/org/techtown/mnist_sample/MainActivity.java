@@ -133,6 +133,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         }
     }
 
+    Boolean fromGall = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -495,6 +497,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             imageView1.setImageURI(imageUri);
             imageButton.setVisibility(View.GONE);
             imageView1.setVisibility(View.VISIBLE);
+            fromGall = true;
             cropImage(imageUri);
         }
         if (requestCode == GET_CAMERA_IMAGE && resultCode == RESULT_OK){
@@ -511,12 +514,30 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             Log.d("imageString", cropUri.toString());
             try{
                 croppedBitmap1 = MediaStore.Images.Media.getBitmap(getContentResolver(), cropUri);
+                if(fromGall){
+                    ExifInterface exif = null;
+
+                    try{
+                        exif = new ExifInterface(imageUri.getPath());
+                    } catch (IOException e){
+                        e.printStackTrace();
+                    }
+
+                    int exifOrientation;
+                    int exifDegree;
+
+                    if(exif != null){
+                        exifOrientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+                        exifDegree = exifOrientationToDegress(exifOrientation);
+                    } else{
+                        exifDegree = 0;
+                    }
+                    croppedBitmap1 = rotate(croppedBitmap1, exifDegree);
+                }
                 fileManager.uploadImage(croppedBitmap1, "img1");
             } catch (Exception e){
                 Log.e("except", String.valueOf(e));
             }
-
-
         }
         if (requestCode==1){
             if(resultCode==RESULT_OK){
@@ -622,6 +643,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     }
 
     public void camera(){
+        fromGall = false;
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if(intent.resolveActivity(getPackageManager()) != null){
             File cameraFile = null;
