@@ -509,8 +509,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             cropImage(imageUri);
         }
         if (requestCode == Crop.REQUEST_CROP && resultCode == RESULT_OK) {
-            Log.e("asdfasdf", "22HERE WITH: ");
-            imageView1.setImageURI(cropUri);
+            //imageView1.setImageURI(cropUri);
             Log.d("imageString", cropUri.toString());
             try{
                 croppedBitmap1 = MediaStore.Images.Media.getBitmap(getContentResolver(), cropUri);
@@ -518,7 +517,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     ExifInterface exif = null;
 
                     try{
-                        exif = new ExifInterface(imageUri.getPath());
+                        exif = new ExifInterface(cropUri.getPath());
                     } catch (IOException e){
                         e.printStackTrace();
                     }
@@ -533,7 +532,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                         exifDegree = 0;
                     }
                     croppedBitmap1 = rotate(croppedBitmap1, exifDegree);
+                    imageView1.setImageBitmap(croppedBitmap1);
                 }
+
+
                 fileManager.uploadImage(croppedBitmap1, "img1");
             } catch (Exception e){
                 Log.e("except", String.valueOf(e));
