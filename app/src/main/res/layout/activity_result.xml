@@ -39,15 +39,6 @@
             android:layout_margin="14dp"
             android:visibility="invisible"
             android:layout_marginRight="20dp"/>
-        <TextView
-            android:id="@+id/text_select"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="#B2B2B2"
-            android:text="SELECT PHOTO"
-            android:textSize="20dp"
-            android:textStyle="bold"
-            android:layout_gravity="center"/>
     </FrameLayout>
 
     <FrameLayout
@@ -60,7 +51,7 @@
             android:layout_gravity="center"
             android:layout_marginLeft="14dp"
             android:layout_marginRight="14dp"
-            android:padding="20dp"
+            android:textSize="10dp"
             android:background="@drawable/edge"
             android:id="@+id/textView"/>
     </FrameLayout>

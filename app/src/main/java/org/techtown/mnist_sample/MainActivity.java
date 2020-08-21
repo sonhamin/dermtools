@@ -9,9 +9,13 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -72,7 +76,9 @@ import java.util.List;
 import java.util.Locale;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
@@ -81,11 +87,9 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 
 public class MainActivity extends AppCompatActivity implements View.OnTouchListener{
-
-    ImageButton imageButton;
-    ImageView imageView1, imageView2, imageView3, imageView;
-    ImageView iv;
-    Button analysisButton, addButton;
+    ImageView select_btn, analyze_btn;
+    ImageView imageView, iv;
+    TextView select_text;
     TextView textView;
     int counter;
     ArrayList<RectangleRange> ranges = new ArrayList<>();
@@ -133,15 +137,47 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         }
     }
 
+    private static final String TAG = "PhoneState";
+
+
     Boolean fromGall = false;
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu){
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item){
+        switch (item.getItemId()){
+            case R.id.menu_menu:
+                Toast.makeText(this, "1", Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.menu_per:
+                Toast.makeText(this, "2", Toast.LENGTH_SHORT).show();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 상태바를 안보이도록 합니다.
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+//        getSupportActionBar().setDisplayShowTitleEnabled(false);
+
+//        actionBar.setDisplayShowCustomEnabled(true);
+//        actionBar.setDisplayShowTitleEnabled(false);
+//        actionBar.setDisplayHomeAsUpEnabled(true);
+//        setSupportActionBar(toolbar);
+//        // 상태바를 안보이도록 합니다.
+//        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+//                WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         mainActivity = this;
         fileManager = new FileManager(getApplication());
@@ -163,7 +199,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         }
 
         setContentView(R.layout.activity_main);
-
 
         final FirebaseCustomRemoteModel remoteModel_unet =
                 new FirebaseCustomRemoteModel.Builder("unet_basic_withopt66.tflite").build();
@@ -200,54 +235,43 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 });
 
 
-        imageButton = findViewById(R.id.image_select_btn);
-        imageView1 = findViewById(R.id.image_1);
-        imageView2 = findViewById(R.id.image_2);
-        imageView3 = findViewById(R.id.image_3);
+        select_text = findViewById(R.id.text_select);
         imageView = findViewById(R.id.image_view);
-        analysisButton = findViewById(R.id.classify_btn);
-        addButton = findViewById(R.id.add_btn);
+        select_btn = findViewById(R.id.imageView);
+        analyze_btn = findViewById(R.id.imageView2);
         textView = findViewById(R.id.textView);
 
+        DeviceInfo deviceInfo = new DeviceInfo(getApplication());
+        Log.d("asdfasdf", "asdf"+ deviceInfo.getModelnumb());
 
-        addButton.setOnClickListener(new View.OnClickListener() {
+        Log.d(TAG, "BOARD = " + Build.BOARD);
+        Log.d(TAG, "BRAND = " + Build.BRAND);
+        Log.d(TAG, "CPU_ABI = " + Build.CPU_ABI);
+        Log.d(TAG, "DEVICE = " + Build.DEVICE);
+        Log.d(TAG, "DISPLAY = " + Build.DISPLAY);
+        Log.d(TAG, "FINGERPRINT = " + Build.FINGERPRINT);
+        Log.d(TAG, "HOST = " + Build.HOST);
+        Log.d(TAG, "ID = " + Build.ID);
+        Log.d(TAG, "MANUFACTURER = " + Build.MANUFACTURER); //제조사
+        Log.d(TAG, "MODEL = " + Build.MODEL); //모델명
+        Log.d(TAG, "PRODUCT = " + Build.PRODUCT);
+        Log.d(TAG, "TAGS = " + Build.TAGS);
+        Log.d(TAG, "TYPE = " + Build.TYPE);
+        Log.d(TAG, "USER = " + Build.USER);
+        Log.d(TAG, "VERSION.RELEASE = " + Build.VERSION.RELEASE);
+
+
+        Toast.makeText(this, deviceInfo.getModelnumb(), Toast.LENGTH_SHORT).show();
+
+        select_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                final CharSequence[] items = {"Take Photo", "Choose from Gallery", "Cancel"};
-                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
-                alertDialogBuilder.setTitle("Add Photo");
-                alertDialogBuilder.setItems(items, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Intent intent;
-                        switch (which){
-                            case 0:
-                                camera();
-//                                intent = new Intent(mainActivity, CameraActivity.class);
-                                break;
-                            case 1:
-
-                                //Clear previous inputs
-                                counter=0;
-                                imageView.setImageDrawable(null);
-                                textView.setText("");
-                                res_all="";
-                                //~Clear previous inputs
-
-                                intent = new Intent(Intent.ACTION_PICK);
-                                intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
-                                startActivityForResult(intent, GET_GALLERY_IMAGE);
-                                break;
-                        }
-                    }
-                });
-                AlertDialog alertDialog = alertDialogBuilder.create();
-                alertDialog.show();
+                Intent intent = new Intent(mainActivity, AddPhotoPopup.class);
+                startActivityForResult(intent, 2);
             }
         });
 
-
-        analysisButton.setOnClickListener(new View.OnClickListener() {
+        analyze_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(croppedBitmap1 != null){
@@ -259,12 +283,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     Bitmap[] combs = preprocessor.decompose(resizedBitmap);
                     croppedBitmap2 = combs[0];
                     croppedBitmap3 = combs[1];
-
-                    imageView2.setImageBitmap(croppedBitmap2);
-                    imageView2.setVisibility(View.VISIBLE);
-                    imageView3.setImageBitmap(croppedBitmap3);
-                    imageView3.setVisibility(View.VISIBLE);
-
 
                     float [][][][][] combs_input = preprocessor.make_inputs_unet(bithw, resizedBitmap, croppedBitmap2, croppedBitmap3);
                     input1 = combs_input[0];
@@ -293,7 +311,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
             private void segment_and_classify(float[][][][] input1,float[][][][] input2,float[][][][] input3,FirebaseModelInterpreterOptions options2) {
                 try {
-
                     FirebaseModelInterpreter interpreter = FirebaseModelInterpreter.getInstance(options2);
                     options_input = new OptionsInput();
                     FirebaseModelInputOutputOptions inputOutputOptions = options_input.getUnetOptions();
@@ -308,7 +325,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                             float[][][][] output2 = result.getOutput(0);
                                             mask_bitmap = preprocessor.maskBitmap(output2);
 
-                                            imageView3.setImageBitmap(mask_bitmap);
+//                                            imageView3.setImageBitmap(mask_bitmap);
                                             init_efficientnet();
                                         }
                                     })
@@ -350,6 +367,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     List<MatOfPoint> contours;
     Bitmap[] bmps;
 
+    Bitmap new_bit;
+
     private void classify(FirebaseModelInterpreter effnet_interpreter, FirebaseModelInputOutputOptions inputOutputOptions) {
         contours = preprocessor.get_contours(mask_bitmap);
         orig_changed = preprocessor.getResizedMat(resizedBitmap);
@@ -371,7 +390,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             final int height = rect.height;
             final int width = rect.width;
 
-
             if(height > 25 && width > 25 && height < 250)
             {
 
@@ -380,7 +398,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
                 RectangleRange rectangleRange = preprocessor.getRectangleRange(originalDims);
                 ranges.add(rectangleRange);
-
 
                 bmps[i] = preprocessor.crop_segments(getContentResolver(), imageUri, rect, width, height);
                 croppedBitmaps.add(bmps[i]);
@@ -404,9 +421,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             }
         }
 
-        imageView1.setVisibility(View.INVISIBLE);
-        imageView2.setVisibility(View.INVISIBLE);
-        imageView3.setVisibility(View.INVISIBLE);
+//        imageView1.setVisibility(View.INVISIBLE);
+//        imageView2.setVisibility(View.INVISIBLE);
+//        imageView3.setVisibility(View.INVISIBLE);
 
         update_firebase();
     }
@@ -425,22 +442,24 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         double fontScale = 1.0;
         Imgproc.putText(orig_changed, text, pnt, fontFace, fontScale, Scalar.all(255));
 
-        Bitmap new_bit = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
+        new_bit = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(orig_changed, new_bit);
 
-
-        imageView2.setImageBitmap(new_bit);
+//        imageView2.setImageBitmap(new_bit);
         textView.setText(res_all);
         Log.d("efficientNet", res_all);
 
-
         imageView.setImageBitmap(new_bit);
         imageView.setVisibility(View.VISIBLE);
-
         iv = (ImageView)findViewById(R.id.image_view);
         if(iv!=null){
             iv.setOnTouchListener(mainActivity);
         }
+
+//        ImageView iv = (ImageView)findViewById(R.id.image_view);
+//        if(iv!=null){
+//            iv.setOnTouchListener(mainActivity);
+//        }
 
         counter++;
     }
@@ -492,20 +511,40 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == 2 && resultCode == RESULT_OK){
+            int result = data.getIntExtra("result", 1);
+            switch (result){
+                case 2:
+                    camera();
+                    break;
+                case 3:
+                    //Clear previous inputs
+                    counter=0;
+//                    imageView.setImageDrawable(null);
+//                    textView.setText("");
+                    res_all="";
+                    //~Clear previous inputs
+
+                    Intent intent = new Intent(Intent.ACTION_PICK);
+                    intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+                    startActivityForResult(intent, GET_GALLERY_IMAGE);
+                    break;
+            }
+        }
         if (requestCode == GET_GALLERY_IMAGE && resultCode == RESULT_OK && data != null && data.getData() != null) {
             imageUri = data.getData();
-            imageView1.setImageURI(imageUri);
-            imageButton.setVisibility(View.GONE);
-            imageView1.setVisibility(View.VISIBLE);
+            imageView.setImageURI(imageUri);
+            select_text.setVisibility(View.GONE);
+            imageView.setVisibility(View.VISIBLE);
             fromGall = true;
             cropImage(imageUri);
         }
         if (requestCode == GET_CAMERA_IMAGE && resultCode == RESULT_OK){
 //            Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
             imageUri = Uri.fromFile(file);
-            imageView1.setImageURI(imageUri);
-            imageButton.setVisibility(View.GONE);
-            imageView1.setVisibility(View.VISIBLE);
+            imageView.setImageURI(imageUri);
+            select_text.setVisibility(View.GONE);
+            imageView.setVisibility(View.VISIBLE);
             cropImage(imageUri);
         }
         if (requestCode == Crop.REQUEST_CROP && resultCode == RESULT_OK) {
@@ -532,7 +571,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                         exifDegree = 0;
                     }
                     croppedBitmap1 = rotate(croppedBitmap1, exifDegree);
-                    imageView1.setImageBitmap(croppedBitmap1);
+                    imageView.setImageBitmap(croppedBitmap1);
                 }
 
 
@@ -577,9 +616,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 exifDegree = 0;
             }
 
-            imageView1.setImageBitmap(rotate(bitmap,exifDegree));
-            imageView1.setVisibility(View.VISIBLE);
-            imageButton.setVisibility(View.GONE);
+            imageView.setImageBitmap(rotate(bitmap,exifDegree));
+            imageView.setVisibility(View.VISIBLE);
+            select_text.setVisibility(View.GONE);
             imageUri = fileManager.getImageUri(getApplicationContext(), rotate(bitmap,exifDegree));
             cropImage(imageUri);
         }
@@ -621,14 +660,21 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 int changeX = evX * changeSize / imSize;
                 int changeY = evY * changeSize / imSize;
                 int inNum = -1;
+                Log.d("ranges", ranges.size()+"");
+                Log.d("ranges_ev", evX+", "+evY);
+                Log.d("ranges_imSize1", imSize+"");
+                Log.d("ranges_imSize2", imageView.getLayoutParams().width+"");
+                Log.d("ranges_change", changeX+", "+changeY);
                 for(int i=0;i<ranges.size();i++){
                     if(ranges.get(i).isIn(changeX, changeY)){
+                        Log.d("ranges", i+"");
                         inNum = i;
                         break;
                     }
                 }
+                Log.d("ranges", inNum+"");
                 if(inNum==-1){
-                    Log.d("asdfasdf", "not inside contour   : " + ranges.size());
+                    Log.d("ranges", "not inside contour   : " + ranges.size());
                 }
                 else{
                     Character numb = (char)('A'+inNum);
