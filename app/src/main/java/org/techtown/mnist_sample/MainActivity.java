@@ -11,7 +11,9 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.MediaStore;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -20,6 +22,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -91,6 +94,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     ImageView imageView, iv;
     TextView select_text;
     TextView textView;
+    ImageView an_img;
+    TextView an_text;
+    FrameLayout frameLayout;
+    View view;
     int counter;
     ArrayList<RectangleRange> ranges = new ArrayList<>();
 
@@ -122,6 +129,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     MainActivity mainActivity;
 
     FileManager fileManager;
+    DeviceInfo deviceInfo;
 
     FirebaseStorage storage = FirebaseStorage.getInstance();
     // Create a storage reference from our app
@@ -139,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
     private static final String TAG = "PhoneState";
 
-
+    Boolean isAnalyzed = false;
     Boolean fromGall = false;
 
     @Override
@@ -169,15 +177,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-//        getSupportActionBar().setDisplayShowTitleEnabled(false);
-
-//        actionBar.setDisplayShowCustomEnabled(true);
-//        actionBar.setDisplayShowTitleEnabled(false);
-//        actionBar.setDisplayHomeAsUpEnabled(true);
-//        setSupportActionBar(toolbar);
-//        // 상태바를 안보이도록 합니다.
-//        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-//                WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         mainActivity = this;
         fileManager = new FileManager(getApplication());
@@ -240,9 +239,14 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         select_btn = findViewById(R.id.imageView);
         analyze_btn = findViewById(R.id.imageView2);
         textView = findViewById(R.id.textView);
+        an_img = findViewById(R.id.analyzing_view_image);
+        an_text = findViewById(R.id.analyzing_view_text);
+        frameLayout = findViewById(R.id.analyzing_view);
+        view = findViewById(R.id.view);
 
-        DeviceInfo deviceInfo = new DeviceInfo(getApplication());
-        Log.d("asdfasdf", "asdf"+ deviceInfo.getModelnumb());
+        DeviceInfo deviceInfo = new DeviceInfo(Build.BOARD, Build.BRAND, Build.CPU_ABI, Build.DEVICE, Build.DISPLAY,
+                Build.FINGERPRINT, Build.HOST, Build.ID, Build.MANUFACTURER, Build.MODEL, Build.PRODUCT,
+                Build.TAGS, Build.TYPE, Build.USER, Build.VERSION.RELEASE);
 
         Log.d(TAG, "BOARD = " + Build.BOARD);
         Log.d(TAG, "BRAND = " + Build.BRAND);
@@ -260,8 +264,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         Log.d(TAG, "USER = " + Build.USER);
         Log.d(TAG, "VERSION.RELEASE = " + Build.VERSION.RELEASE);
 
-
-        Toast.makeText(this, deviceInfo.getModelnumb(), Toast.LENGTH_SHORT).show();
+        deviceInfo.logging();
 
         select_btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -274,8 +277,12 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         analyze_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if(isAnalyzed){
+                    Toast.makeText(getApplication(), "이미 실행되었습니다.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 if(croppedBitmap1 != null){
-
+                    isAnalyzed = true;
                     int bithw = 304;
                     resizedBitmap = Bitmap.createScaledBitmap(croppedBitmap1, 304, 304, true);
 
@@ -289,6 +296,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     input2 = combs_input[1];
                     input3 = combs_input[2];
 
+                    frameLayout.bringToFront();
+                    view.setVisibility(View.VISIBLE);
+                    an_img.setVisibility(View.VISIBLE);
+                    an_text.setVisibility(View.VISIBLE);
                     init_Unet();
                 }
             }
@@ -334,8 +345,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                                         @Override
                                         public void onFailure(@NonNull Exception e) {        e.printStackTrace();                               }
                                     });
-                } catch (FirebaseMLException e) {                                            e.printStackTrace();                               }
-
+                } catch (FirebaseMLException e) {
+                    e.printStackTrace();
+                }
             }
 
             private void init_efficientnet() {
@@ -383,7 +395,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
             Rect rect = Imgproc.boundingRect(contours.get(i));
             int [] originalDims = preprocessor.getOriginalDims(rect);
-            rect = preprocessor.adjustRectangles(rect, orig_changed);
+//            rect = preprocessor.adjustRectangles(rect, orig_changed);
 
             final int x = rect.x;
             final int y = rect.y;
@@ -401,6 +413,9 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
                 bmps[i] = preprocessor.crop_segments(getContentResolver(), imageUri, rect, width, height);
                 croppedBitmaps.add(bmps[i]);
+                Log.d("croppedBitmap", i+": "+width+", "+height+" || "+rect);
+                Log.d("crooppedBitmap Size", i+": "+bmps[i].getWidth()+", "+bmps[i].getHeight());
+                Log.d("crooppedBitmap Size", i+": "+preprocessor.crop_segments(getContentResolver(), imageUri, rect, width, height).getWidth()+", "+preprocessor.crop_segments(getContentResolver(), imageUri, rect, width, height).getHeight());
 
                 float [][][][] effnet_input = preprocessor.make_inputs_effnet(bmps[i]);
                 FirebaseModelInputs inputs = options_input.getEffnetInputs(effnet_input);
@@ -424,8 +439,16 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 //        imageView1.setVisibility(View.INVISIBLE);
 //        imageView2.setVisibility(View.INVISIBLE);
 //        imageView3.setVisibility(View.INVISIBLE);
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                an_img.setVisibility(View.INVISIBLE);
+                an_text.setVisibility(View.INVISIBLE);
+                view.setVisibility(View.INVISIBLE);
+                update_firebase();
+            }
+        }, 1000);
 
-        update_firebase();
     }
 
     private void set_output_parameters(FirebaseModelOutputs result, Point pnt) {
@@ -447,6 +470,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
 //        imageView2.setImageBitmap(new_bit);
         textView.setText(res_all);
+        textView.setMovementMethod(new ScrollingMovementMethod());
         Log.d("efficientNet", res_all);
 
         imageView.setImageBitmap(new_bit);
@@ -470,7 +494,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         String time = sdf.format(dt).toString();
         OriginalInfo originalInfo = new OriginalInfo();
         mDatabase.updateChildren(originalInfo.postInfo("user", time));
-        fileManager.uploadImageOrigin(croppedBitmap1, "original", "user", time);
+        fileManager.uploadImageOrigin(croppedBitmap1, "original","user", time);
         for(int i=0;i<croppedBitmaps.size();i++){
             double area = croppedBitmaps.get(i).getWidth() * croppedBitmaps.get(i).getHeight();
             int[] pixels = new int[(int)area];
@@ -550,6 +574,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         if (requestCode == Crop.REQUEST_CROP && resultCode == RESULT_OK) {
             //imageView1.setImageURI(cropUri);
             Log.d("imageString", cropUri.toString());
+            isAnalyzed = false;
             try{
                 croppedBitmap1 = MediaStore.Images.Media.getBitmap(getContentResolver(), cropUri);
                 if(fromGall){

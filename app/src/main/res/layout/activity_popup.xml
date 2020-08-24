@@ -1,79 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:background="#eeeeee"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="296dp"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:layout_width="300dp"
-    android:layout_height="wrap_content">
+    android:background="#ffffff"
+    tools:context=".PopupActivity">
 
     <!-- 타이틀바 -->
-    <LinearLayout
-        android:orientation="horizontal"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="50dp">
+        <ImageView
+            android:id="@+id/imageView3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/add_photo_x"
+            android:layout_marginLeft="23.5dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:onClick="mOnClose"/>
+
         <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NOTICE"
             android:id="@+id/notice"
-            android:text="Notice"
-            android:textSize="20sp"
-            android:textColor="#fff"
+            android:textColor="#265DC4"
+            android:textStyle="bold"
+            android:textSize="20dp"
             android:gravity="center"
-            android:background="#ff7a00"
-            android:layout_width="match_parent"
-            android:layout_height="53dp" />
-    </LinearLayout>
-    <!-- //end 타이틀바 -->
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Notice -->
     <LinearLayout
-        android:padding="12dp"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="200dp">
+        android:layout_height="wrap_content">
         <ImageView
+            android:src="@drawable/analyzing_round"
             android:id="@+id/popup_imageView"
-            android:layout_width="0px"
             android:scaleType="fitCenter"
-            android:layout_weight="4"
-            android:layout_height="match_parent"></ImageView>
+            android:layout_marginTop="5dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
         <TextView
-            android:layout_marginLeft="10dp"
             android:id="@+id/txtText"
-            android:layout_weight="5"
             android:textSize="15sp"
-            android:textColor="#000"
-            android:alpha="0.87"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/edge"
+            android:layout_marginRight="10dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginBottom="10dp"
+            android:layout_marginTop="10dp"
+            android:padding="20dp"
             android:gravity="center"
-            android:layout_marginBottom="3dp"
-            android:layout_width="0px"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content" />
     </LinearLayout>
     <!-- Notice -->
 
-    <View
-        android:background="#66bdbdbd"
-        android:layout_width="match_parent"
-        android:layout_height="1dp" />
-
-    <!-- 닫기 버튼 -->
-    <LinearLayout
-        android:orientation="horizontal"
+    <TextView
+        android:id="@+id/more_btn"
+        android:textSize="15dp"
+        android:text="MORE INFORMATION"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/edge_btn"
         android:gravity="center"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <Button
-            android:layout_width="130dp"
-            android:layout_height="40dp"
-            android:text="More Info"
-            android:id="@+id/mibtn"
-            android:layout_margin="10dp"
-            android:gravity="center"
-            android:onClick="mOnMoreInfo"/>
-        <Button
-            android:text="Close"
-            android:layout_width="130dp"
-            android:layout_height="40dp"
-            android:gravity="center"
-            android:layout_margin="10dp"
-            android:onClick="mOnClose"/>
-    </LinearLayout>
-    <!--// 닫기 버튼 -->
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:paddingBottom="3dp"
+        android:paddingTop="3dp"
+        android:layout_marginBottom="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="mOnMoreInfo"/>
+
+
 </LinearLayout>
