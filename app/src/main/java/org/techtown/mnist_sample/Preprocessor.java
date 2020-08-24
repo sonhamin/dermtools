@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import org.opencv.android.Utils;
 import org.opencv.core.CvType;
@@ -234,8 +235,13 @@ public class Preprocessor {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Mat originImg = new Mat(originalBitmap.getWidth() ,originalBitmap.getHeight(), CvType.CV_8UC4);
-        Utils.bitmapToMat(originalBitmap, originImg);
+
+        int bithw = 304;
+        Bitmap resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, 304, 304, true);
+
+        Mat originImg = new Mat(resizedBitmap.getWidth() ,resizedBitmap.getHeight(), CvType.CV_8UC4);
+        Utils.bitmapToMat(resizedBitmap, originImg);
+        Log.e("asdf", "Width: "+resizedBitmap.getWidth() +  "   Height: " + resizedBitmap.getHeight());
         Mat subImg = originImg.submat(rect);
         Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(subImg, bmp);
@@ -244,6 +250,7 @@ public class Preprocessor {
 
         return ret;
     }
+
 
     public int[] getOriginalDims(Rect rect) {
 
@@ -256,9 +263,10 @@ public class Preprocessor {
         return orig;
     }
 
-    public void drawContourRects(Mat orig_img, List<MatOfPoint> contour, Rect rect) {
+    public void drawContourRects(Mat orig_img, List<MatOfPoint> contour, Rect rect, Boolean draw_rect) {
         Imgproc.drawContours(orig_img, contour, 0, new Scalar(0,255,0), 1);
-        Imgproc.rectangle(orig_img, rect.tl(), rect.br(), new Scalar(255,0,0), 2);
+
+        if(draw_rect){Imgproc.rectangle(orig_img, rect.tl(), rect.br(), new Scalar(255,0,0), 2);}
     }
 
     public RectangleRange getRectangleRange(int[] originalDims) {
@@ -284,7 +292,7 @@ public class Preprocessor {
 
         for(int i=0;i<304;i++){
             for(int j=0;j<304;j++){
-                if(output2[0][i][j][0]>=0.10){          mask_bitmap.setPixel(j, i, Color.WHITE);           }
+                if(output2[0][i][j][0]>=0.02){          mask_bitmap.setPixel(j, i, Color.WHITE);           }
                 else                         {          mask_bitmap.setPixel(j, i, Color.BLACK);           }
             }
         }

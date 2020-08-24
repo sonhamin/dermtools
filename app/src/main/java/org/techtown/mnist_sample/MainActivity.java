@@ -214,7 +214,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 .setAssetFilePath("eff_net_basic.tflite")
                 .build();
 
-        FirebaseModelDownloadConditions conditions = new FirebaseModelDownloadConditions.Builder()
+        /*FirebaseModelDownloadConditions conditions = new FirebaseModelDownloadConditions.Builder()
                 .requireWifi()
                 .build();
 
@@ -232,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     public void onComplete(@NonNull Task<Void> task) {
                         Log.e("asdf", "effnet download success");
                     }
-                });
+                });*/
 
 
         select_text = findViewById(R.id.text_select);
@@ -376,28 +376,30 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
         for (int i=0; i<contours.size(); i++) {
 
-            List<MatOfPoint> contour = new ArrayList<>();
+            final List<MatOfPoint> contour = new ArrayList<>();
             contour.add(contours.get(i));
 
             Rect rect = Imgproc.boundingRect(contours.get(i));
             int [] originalDims = preprocessor.getOriginalDims(rect);
-//            rect = preprocessor.adjustRectangles(rect, orig_changed);
+            rect = preprocessor.adjustRectangles(rect, orig_changed);
 
             final int x = rect.x;
             final int y = rect.y;
             final int height = rect.height;
             final int width = rect.width;
 
-            if(height > 25 && width > 25 && height < 250)
+            float ratio = (float)height / (float)width;
+
+            if(height > 50 && width > 50 && height < 250)
             {
 
                 Log.e("asdf", "x: " + x + " y: " + y + " height: " + height + " width: " + width);
-                preprocessor.drawContourRects(orig_changed, contour, rect);
+                preprocessor.drawContourRects(orig_changed, contour, rect, false);
 
-                RectangleRange rectangleRange = preprocessor.getRectangleRange(originalDims);
+                final RectangleRange rectangleRange = preprocessor.getRectangleRange(originalDims);
                 ranges.add(rectangleRange);
 
-                bmps[i] = preprocessor.crop_segments(getContentResolver(), imageUri, rect, width, height);
+                bmps[i] = preprocessor.crop_segments(getContentResolver(), cropUri, rect, width, height);
                 croppedBitmaps.add(bmps[i]);
                 Log.d("croppedBitmap", i+": "+width+", "+height+" || "+rect);
                 Log.d("crooppedBitmap Size", i+": "+bmps[i].getWidth()+", "+bmps[i].getHeight());
@@ -405,13 +407,14 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
                 float [][][][] effnet_input = preprocessor.make_inputs_effnet(bmps[i]);
                 FirebaseModelInputs inputs = options_input.getEffnetInputs(effnet_input);
+                final Rect finalRect = rect;
                 effnet_interpreter.run(inputs, inputOutputOptions)
                         .addOnSuccessListener(
                                 new OnSuccessListener<FirebaseModelOutputs>() {
                                     @Override
                                     public void onSuccess(FirebaseModelOutputs result) {
                                         Point pnt = new Point(x + width/2 - 10, y + height/2 + 10);
-                                        set_output_parameters(result, pnt);
+                                        set_output_parameters(result, pnt, rectangleRange, orig_changed, contour, finalRect, false);
                                     }
                                 })
                         .addOnFailureListener(
@@ -438,22 +441,27 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
     }
 
-    private void set_output_parameters(FirebaseModelOutputs result, Point pnt) {
+    private void set_output_parameters(FirebaseModelOutputs result, Point pnt, RectangleRange rectangleRange, Mat orig_changed, List<MatOfPoint> contour, Rect finalRect, boolean b) {
         bmpOutputs[counter] = result.getOutput(0);
 
         Character numb = (char)('A'+counter);
         EfficientOuput efficientOuput = new EfficientOuput();
         String a = efficientOuput.outputToString(bmpOutputs[counter]);
 
+
+        ranges.add(rectangleRange);
+        preprocessor.drawContourRects(orig_changed, contour, finalRect, b);
+
+
         res_all = res_all + numb + ": "+a + "\n";
         String text = "" + numb;
 
         int fontFace = 2;
         double fontScale = 1.0;
-        Imgproc.putText(orig_changed, text, pnt, fontFace, fontScale, Scalar.all(255));
+        Imgproc.putText(this.orig_changed, text, pnt, fontFace, fontScale, Scalar.all(255));
 
         new_bit = Bitmap.createBitmap(304, 304, Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(orig_changed, new_bit);
+        Utils.matToBitmap(this.orig_changed, new_bit);
 
 //        imageView2.setImageBitmap(new_bit);
         textView.setText(res_all);

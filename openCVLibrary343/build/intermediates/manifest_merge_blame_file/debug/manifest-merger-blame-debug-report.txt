@@ -5,39 +5,39 @@
 5    android:versionName="3.4.3" >
 6
 7    <uses-sdk
-7-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:7:5-47
+7-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:7:5-47
 8        android:minSdkVersion="26"
-8-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:7:5-47
+8-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:7:5-47
 9        android:targetSdkVersion="28" />
-9-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:7:15-44
+9-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:7:15-44
 10
 11    <uses-permission android:name="android.permission.CAMERA" />
-11-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:8:5-64
-11-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:8:22-62
+11-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:8:5-64
+11-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:8:22-62
 12
 13    <uses-feature
-13-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:10:5-84
+13-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:10:5-84
 14        android:name="android.hardware.camera"
-14-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:10:19-57
+14-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:10:19-57
 15        android:required="false" />
-15-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:10:58-82
+15-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:10:58-82
 16    <uses-feature
-16-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:11:5-94
+16-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:11:5-94
 17        android:name="android.hardware.camera.autofocus"
-17-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:11:19-67
+17-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:11:19-67
 18        android:required="false" />
-18-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:11:68-92
+18-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:11:68-92
 19    <uses-feature
-19-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:12:5-90
+19-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:12:5-90
 20        android:name="android.hardware.camera.front"
-20-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:12:19-63
+20-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:12:19-63
 21        android:required="false" />
-21-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:12:64-88
+21-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:12:64-88
 22    <uses-feature
-22-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:13:5-100
+22-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:13:5-100
 23        android:name="android.hardware.camera.front.autofocus"
-23-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:13:19-73
+23-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:13:19-73
 24        android:required="false" />
-24-->C:\Users\yhjso\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:13:74-98
+24-->C:\Users\IMTL\Desktop\git\dermtools\openCVLibrary343\src\main\AndroidManifest.xml:13:74-98
 25
 26</manifest>
