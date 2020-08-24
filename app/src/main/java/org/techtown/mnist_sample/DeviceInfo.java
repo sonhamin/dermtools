@@ -6,6 +6,9 @@ import android.os.Build;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class DeviceInfo {
     String board;
     String brand;
@@ -66,4 +69,32 @@ public class DeviceInfo {
     public String getId(){
         return id;
     }
+
+    public Map<String, Object> postInfo(){
+        Map<String, Object> postValues = toMap();
+        Map<String, Object> childUpdates = new HashMap<>();
+        String key = "/"+id+"/deviceInfo";
+        childUpdates.put(key, postValues);
+        return childUpdates;
+    }
+
+    public Map<String, Object> toMap(){
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("board", board);
+        result.put("brand", brand);
+        result.put("cpu_abi", cpu_abi);
+        result.put("device", device);
+        result.put("display", display);
+        result.put("fingerprint", fingerprint);
+        result.put("host", host);
+        result.put("manufacturer", manufacturer);
+        result.put("model", model);
+        result.put("product", product);
+        result.put("tags", tags);
+        result.put("type", type);
+        result.put("user", user);
+        result.put("version_release", vers_rel);
+        return result;
+    }
+
 }

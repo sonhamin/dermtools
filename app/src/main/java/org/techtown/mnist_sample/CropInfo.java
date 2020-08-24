@@ -1,5 +1,7 @@
 package org.techtown.mnist_sample;
 
+import android.util.Log;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,9 +34,9 @@ public class CropInfo {
     public Map<String, Object> postInfo(String user, String time, String parameter){
         Map<String, Object> postValues = toMap();
         Map<String, Object> childUpdates = new HashMap<>();
-        String key = "/"+user+"/"+time+"/"+parameter+"/Text";
+        String key = "/"+user+"/diseaseInfo/"+time+"/"+parameter+"/Text";
         childUpdates.put(key, postValues);
-        String key2 = "/"+user+"/"+time+"/"+parameter+"/Image";
+        String key2 = "/"+user+"/diseaseInfo/"+time+"/"+parameter+"/Image";
         Map<String, Object> postValues2 = new HashMap<>();
         postValues2.put("ref", "image/"+user+"/"+time+"/"+parameter +".jpg");
         childUpdates.put(key2, postValues2);

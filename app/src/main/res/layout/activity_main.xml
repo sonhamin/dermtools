@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -10,26 +9,38 @@
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="169dp"
         android:background="#FFFFFF"
-        android:elevation="4dp"
+        android:elevation="10dp"
+        android:gravity="center"
         android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        app:layout_constraintBottom_toTopOf="@+id/analyzing_view"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         app:popupTheme="@style/Theme.AppCompat.Light">
+
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:text="ASM_app"
-            android:textSize="20dp"
             android:gravity="center"
-            android:textColor="#265DC4"/>
+            android:text="ASM_app"
+            android:textColor="#265DC4"
+            android:textSize="20dp"
+            android:textStyle="bold" />
     </androidx.appcompat.widget.Toolbar>
 
     <LinearLayout
         android:id="@+id/linearLayout2"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -165,29 +176,34 @@
     </LinearLayout>
 
     <View
-        android:visibility="invisible"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:id="@+id/view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:background="#80E6E6E6"
-        android:id="@+id/view"/>
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <FrameLayout
         android:id="@+id/analyzing_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="@+id/linearLayout2"
+        android:layout_marginBottom="424dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@+id/toolbar"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginBottom="200dp"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@+id/toolbar">
+
         <ImageView
-            android:visibility="invisible"
             android:id="@+id/analyzing_view_image"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/analyzing_round" />
+            android:src="@drawable/analyzing_round"
+            android:visibility="invisible" />
+
         <TextView
-            android:visibility="invisible"
             android:id="@+id/analyzing_view_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -195,9 +211,9 @@
             android:text="ANALYZING"
             android:textColor="#FFFFFF"
             android:textSize="20dp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:visibility="invisible" />
     </FrameLayout>
-
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

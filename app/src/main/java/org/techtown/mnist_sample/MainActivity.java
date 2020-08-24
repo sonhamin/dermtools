@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
@@ -244,25 +245,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         frameLayout = findViewById(R.id.analyzing_view);
         view = findViewById(R.id.view);
 
-        DeviceInfo deviceInfo = new DeviceInfo(Build.BOARD, Build.BRAND, Build.CPU_ABI, Build.DEVICE, Build.DISPLAY,
-                Build.FINGERPRINT, Build.HOST, Build.ID, Build.MANUFACTURER, Build.MODEL, Build.PRODUCT,
+        deviceInfo = new DeviceInfo(Build.BOARD, Build.BRAND, Build.CPU_ABI, Build.DEVICE, Build.DISPLAY,
+                Build.FINGERPRINT, Build.HOST, Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID), Build.MANUFACTURER, Build.MODEL, Build.PRODUCT,
                 Build.TAGS, Build.TYPE, Build.USER, Build.VERSION.RELEASE);
 
-        Log.d(TAG, "BOARD = " + Build.BOARD);
-        Log.d(TAG, "BRAND = " + Build.BRAND);
-        Log.d(TAG, "CPU_ABI = " + Build.CPU_ABI);
-        Log.d(TAG, "DEVICE = " + Build.DEVICE);
-        Log.d(TAG, "DISPLAY = " + Build.DISPLAY);
-        Log.d(TAG, "FINGERPRINT = " + Build.FINGERPRINT);
-        Log.d(TAG, "HOST = " + Build.HOST);
-        Log.d(TAG, "ID = " + Build.ID);
-        Log.d(TAG, "MANUFACTURER = " + Build.MANUFACTURER); //제조사
-        Log.d(TAG, "MODEL = " + Build.MODEL); //모델명
-        Log.d(TAG, "PRODUCT = " + Build.PRODUCT);
-        Log.d(TAG, "TAGS = " + Build.TAGS);
-        Log.d(TAG, "TYPE = " + Build.TYPE);
-        Log.d(TAG, "USER = " + Build.USER);
-        Log.d(TAG, "VERSION.RELEASE = " + Build.VERSION.RELEASE);
 
         deviceInfo.logging();
 
@@ -446,6 +432,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                 an_text.setVisibility(View.INVISIBLE);
                 view.setVisibility(View.INVISIBLE);
                 update_firebase();
+
             }
         }, 1000);
 
@@ -493,8 +480,8 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd, hh:mm:ss a");
         String time = sdf.format(dt).toString();
         OriginalInfo originalInfo = new OriginalInfo();
-        mDatabase.updateChildren(originalInfo.postInfo("user", time));
-        fileManager.uploadImageOrigin(croppedBitmap1, "original","user", time);
+        mDatabase.updateChildren(originalInfo.postInfo(deviceInfo.getId(), time));
+        fileManager.uploadImageOrigin(croppedBitmap1, "original", deviceInfo.getId(), time);
         for(int i=0;i<croppedBitmaps.size();i++){
             double area = croppedBitmaps.get(i).getWidth() * croppedBitmaps.get(i).getHeight();
             int[] pixels = new int[(int)area];
@@ -512,9 +499,10 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             B /= area;
             CropInfo cropInfo = new CropInfo(area, R, G, B);
             String parameter = (char)('A'+i)+"";
-            mDatabase.updateChildren(cropInfo.postInfo("user", time, parameter));
-            fileManager.uploadImageOrigin(croppedBitmaps.get(i), parameter, "user", time);
+            mDatabase.updateChildren(cropInfo.postInfo(deviceInfo.getId(), time, parameter));
+            fileManager.uploadImageOrigin(croppedBitmaps.get(i), parameter, deviceInfo.getId(), time);
         }
+        mDatabase.updateChildren(deviceInfo.postInfo());
 
     }
     private void cropImage(Uri photoUri) {
