@@ -9,10 +9,11 @@ App implementation of AI-based localization and classification of skin disease w
 
 
 <br> <br>
-![Alt text](images/12.png?raw=true)
+
 <p>
 Given a image of skin, we decompose, segment, and classify in a sequential manner.
 </p>
+![Alt text](images/12.png?raw=true)
 # Requriements
 <p>
 Android Studio (>= 4.1.1) <br>
