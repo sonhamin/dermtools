@@ -100,14 +100,14 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     FrameLayout frameLayout;
     View view;
     int counter;
-    ArrayList<RectangleRange> ranges = new ArrayList<>();
+    static ArrayList<RectangleRange> ranges = new ArrayList<>();
 
     private final int GET_GALLERY_IMAGE = 200;
     private final int GET_CAMERA_IMAGE = 101;
     private static final int REQUEST_IMAGE_CAPTURE = 672;
 
     Preprocessor preprocessor;
-    float[][][] bmpOutputs;
+    static float[][][] bmpOutputs;
     float[][][][] input1;
     float[][][][] input2;
     float[][][][] input3;
@@ -126,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     Bitmap croppedBitmap1 = null, croppedBitmap2 = null, croppedBitmap3 = null;
     File croppedFile;
 
-    ArrayList<Bitmap> croppedBitmaps = new ArrayList<>();
+    static ArrayList<Bitmap> croppedBitmaps = new ArrayList<>();
     MainActivity mainActivity;
 
     FileManager fileManager;
@@ -286,75 +286,13 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     view.setVisibility(View.VISIBLE);
                     an_img.setVisibility(View.VISIBLE);
                     an_text.setVisibility(View.VISIBLE);
-                    init_Unet();
+
+
+
+                    ModelInference segment_classify_model = new ModelInference(MainActivity.this, resizedBitmap, imageUri, cropUri, 0);
+                    FirebaseModelInterpreterOptions options2 = segment_classify_model.initializeUnet(localModel_unet);
+                    segment_classify_model.segment_and_classify(input1, input2, input3, options2, localModel_effnet);
                 }
-            }
-
-            private void init_Unet() {
-                FirebaseModelManager.getInstance().isModelDownloaded(remoteModel_unet)
-                        .addOnSuccessListener(new OnSuccessListener<Boolean>() {
-                            @Override
-                            public void onSuccess(Boolean isDownloaded) {
-                                FirebaseModelInterpreterOptions options2;
-                                if (isDownloaded) {
-                                    options2 = new FirebaseModelInterpreterOptions.Builder(remoteModel_unet).build();
-                                } else {
-                                    options2 = new FirebaseModelInterpreterOptions.Builder(localModel_unet).build();
-                                }
-                                segment_and_classify(input1, input2, input3, options2);
-                            }
-                        });
-            }
-
-            private void segment_and_classify(float[][][][] input1,float[][][][] input2,float[][][][] input3,FirebaseModelInterpreterOptions options2) {
-                try {
-                    FirebaseModelInterpreter interpreter = FirebaseModelInterpreter.getInstance(options2);
-                    options_input = new OptionsInput();
-                    FirebaseModelInputOutputOptions inputOutputOptions = options_input.getUnetOptions();
-                    FirebaseModelInputs inputs = options_input.getUnetInputs(input1, input2, input3);
-
-                    interpreter.run(inputs, inputOutputOptions)
-                            .addOnSuccessListener(
-                                    new OnSuccessListener<FirebaseModelOutputs>() {
-                                        @Override
-                                        public void onSuccess(FirebaseModelOutputs result) {
-                                            Log.e("asdf", "done masking");
-                                            float[][][][] output2 = result.getOutput(0);
-                                            mask_bitmap = preprocessor.maskBitmap(output2);
-
-//                                            imageView3.setImageBitmap(mask_bitmap);
-                                            init_efficientnet();
-                                        }
-                                    })
-                            .addOnFailureListener(
-                                    new OnFailureListener() {
-                                        @Override
-                                        public void onFailure(@NonNull Exception e) {        e.printStackTrace();                               }
-                                    });
-                } catch (FirebaseMLException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            private void init_efficientnet() {
-                FirebaseModelManager.getInstance().isModelDownloaded(remoteModel_effnet)
-                        .addOnSuccessListener(new OnSuccessListener<Boolean>() {
-                            @Override
-                            public void onSuccess(Boolean isDownloaded) {
-                                FirebaseModelInterpreterOptions options2;
-                                if (isDownloaded) {               options2 = new FirebaseModelInterpreterOptions.Builder(remoteModel_effnet).build();                  }
-                                else {                            options2 = new FirebaseModelInterpreterOptions.Builder(localModel_effnet).build();                   }
-
-                                FirebaseModelInterpreter effnet_interpreter = null;
-                                try {
-                                    effnet_interpreter = FirebaseModelInterpreter.getInstance(options2);
-                                } catch (FirebaseMLException e) {
-                                    e.printStackTrace();
-                                }
-                                FirebaseModelInputOutputOptions inputOutputOptions = options_input.getEffnetOptions();
-                                classify(effnet_interpreter, inputOutputOptions);
-                            }
-                        });
             }
         });
     }
